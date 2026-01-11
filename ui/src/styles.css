@@ -1,0 +1,6 @@
+/* Minimal custom styles - MUI handles most styling via theme */
+
+/* Keep logo styling that's not part of MUI */
+.logo {
+  height: 48px;
+}
