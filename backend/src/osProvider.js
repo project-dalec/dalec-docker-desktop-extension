@@ -1,21 +1,21 @@
 import { exec } from 'child_process';
 
-// Fallback OS list with labels
+// Fallback OS list
 const FALLBACK_OS_TARGETS = [
-  { value: 'mariner2', label: 'Azure Linux 2 (formerly CBL-Mariner)' },
-  { value: 'azlinux3', label: 'Azure Linux 3' },
-  { value: 'bullseye', label: 'Debian 11 (Bullseye) (v0.11)' },
-  { value: 'bookworm', label: 'Debian 12 (Bookworm) (v0.11)' },
-  { value: 'trixie', label: 'Debian 13 (Trixie) (v0.next)' },
-  { value: 'bionic', label: 'Ubuntu 18.04 (Bionic) (v0.11)' },
-  { value: 'focal', label: 'Ubuntu 20.04 (focal) (v0.11)' },
-  { value: 'jammy', label: 'Ubuntu 22.04 (jammy) (v0.9)' },
-  { value: 'noble', label: 'Ubuntu 24.04 (noble) (v0.11)' },
-  { value: 'windowscross', label: 'Cross compile from Ubuntu Jammy to Windows' },
-  { value: 'almalinux9', label: 'AlmaLinux 9 (v0.13)' },
-  { value: 'almalinux8', label: 'AlmaLinux 8 (v0.13)' },
-  { value: 'rockylinux8', label: 'Rocky Linux 8 (v0.13)' },
-  { value: 'rockylinux9', label: 'Rocky Linux 9 (v0.13)' },
+  'mariner2',
+  'azlinux3',
+  'bullseye',
+  'bookworm',
+  'trixie',
+  'bionic',
+  'focal',
+  'jammy',
+  'noble',
+  'windowscross',
+  'almalinux9',
+  'almalinux8',
+  'rockylinux8',
+  'rockylinux9',
 ];
 
 // Attempt to fetch OS targets from docker buildx, fallback to curated list if not available.
@@ -34,12 +34,12 @@ export function fetchOsList() {
         const result = JSON.parse(stdout);
         
         // Extract targets from the JSON response
-        // Expected format: { "targets": { "target1": {...}, "target2": {...} } }
-        if (result && result.targets) {
-          const targets = Object.keys(result.targets).map(target => ({
-            value: target,
-            label: target
-          }));
+        // Expected format: { "targets": [{ "name": "target1", ... }, ...] }
+        if (result && Array.isArray(result.targets)) {
+          const targets = result.targets
+            .map(t => t.name)
+            .filter(name => name.endsWith('/container/depsonly'))
+            .map(name => name.replace('/container/depsonly', ''));
           
           if (targets.length > 0) {
             resolve(targets);
