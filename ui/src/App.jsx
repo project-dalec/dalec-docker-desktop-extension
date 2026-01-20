@@ -30,11 +30,29 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import LogViewer from './components/LogViewer.jsx';
+import { parseVersionConstraints } from './utils/versionParser.js';
 
 const ddClient = createDockerDesktopClient();
 
+// OS Targets with labels
+const OS_TARGETS = [
+  { value: 'mariner2', label: 'Azure Linux 2 (formerly CBL-Mariner)' },
+  { value: 'azlinux3', label: 'Azure Linux 3' },
+  { value: 'bullseye', label: 'Debian 11 (Bullseye) (v0.11)' },
+  { value: 'bookworm', label: 'Debian 12 (Bookworm) (v0.11)' },
+  { value: 'trixie', label: 'Debian 13 (Trixie) (v0.next)' },
+  { value: 'bionic', label: 'Ubuntu 18.04 (Bionic) (v0.11)' },
+  { value: 'focal', label: 'Ubuntu 20.04 (focal) (v0.11)' },
+  { value: 'jammy', label: 'Ubuntu 22.04 (jammy) (v0.9)' },
+  { value: 'noble', label: 'Ubuntu 24.04 (noble) (v0.11)' },
+  { value: 'windowscross', label: 'Cross compile from Ubuntu Jammy to Windows' },
+  { value: 'almalinux9', label: 'AlmaLinux 9 (v0.13)' },
+  { value: 'almalinux8', label: 'AlmaLinux 8 (v0.13)' },
+  { value: 'rockylinux8', label: 'Rocky Linux 8 (v0.13)' },
+  { value: 'rockylinux9', label: 'Rocky Linux 9 (v0.13)' },
+];
+
 export default function App() {
-  const [osList, setOsList] = useState([]);
   const [packages, setPackages] = useState([]);
   const [selectedPackages, setSelectedPackages] = useState([
     { name: 'curl', version: '', type: 'runtime' },
@@ -55,11 +73,7 @@ export default function App() {
   const highlightedItemRef = useRef(null);
 
   useEffect(() => {
-    // Fetch OS list and packages from backend via Docker extension SDK
-    ddClient.extension.vm.service.get('/api/os')
-      .then(setOsList)
-      .catch(() => setOsList(['azlinux3']));
-
+    // Fetch packages from backend via Docker extension SDK
     ddClient.extension.vm.service.get('/api/packages')
       .then(setPackages)
       .catch(() => setPackages([
@@ -80,7 +94,13 @@ export default function App() {
     // Group packages by type
     const depsByType = selectedPackages.reduce((acc, p) => {
       if (!acc[p.type]) acc[p.type] = {};
-      acc[p.type][p.name] = {};
+
+      // Parse version constraints using utility function
+      const versionConstraints = parseVersionConstraints(p.version);
+
+      acc[p.type][p.name] = versionConstraints.length > 0
+        ? { version: versionConstraints }
+        : {};
       return acc;
     }, {});
 
@@ -322,8 +342,8 @@ export default function App() {
             label="OS Target"
             onChange={e => setOsTarget(e.target.value)}
           >
-            {osList.map(o => (
-              <MenuItem key={o} value={o}>{o}</MenuItem>
+            {OS_TARGETS.map(os => (
+              <MenuItem key={os.value} value={os.value}>{os.label}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -460,7 +480,7 @@ export default function App() {
                           <TextField
                             value={pkg.version}
                             onChange={(e) => updatePackageVersion(pkg.name, pkg.type, e.target.value)}
-                            placeholder="latest"
+                            placeholder=">=1.0.0, <2.0.0"
                             size="small"
                             variant="standard"
                             fullWidth
