@@ -104,9 +104,12 @@ export default function App() {
       // Parse version constraints using utility function
       const versionConstraints = parseVersionConstraints(p.version);
 
-      acc[p.type][p.name] = versionConstraints.length > 0
-        ? { version: versionConstraints }
-        : {};
+      const hasVersionConstraints = versionConstraints.length > 0;
+      let packageValue = {};
+      if (hasVersionConstraints) {
+        packageValue = { version: versionConstraints };
+      }
+      acc[p.type][p.name] = packageValue;
       return acc;
     }, {});
 
