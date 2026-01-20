@@ -63,6 +63,7 @@ export default function App() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [imageName, setImageName] = useState('my-minimal-image:0.1.0');
+  const [osTargets, setOsTargets] = useState(OS_TARGETS);
   const [osTarget, setOsTarget] = useState('azlinux3');
   const [buildId, setBuildId] = useState(null);
   const [status, setStatus] = useState(null);
@@ -88,6 +89,11 @@ export default function App() {
         'less', 'nano', 'emacs', 'tree', 'findutils',
         'coreutils', 'util-linux', 'procps', 'psmisc'
       ]));
+
+    // Fetch OS targets from backend
+    ddClient.extension.vm.service.get('/api/os')
+      .then(setOsTargets)
+      .catch(() => setOsTargets(OS_TARGETS));
   }, []);
 
   useEffect(() => {
@@ -342,7 +348,7 @@ export default function App() {
             label="OS Target"
             onChange={e => setOsTarget(e.target.value)}
           >
-            {OS_TARGETS.map(os => (
+            {osTargets.map(os => (
               <MenuItem key={os.value} value={os.value}>{os.label}</MenuItem>
             ))}
           </Select>
