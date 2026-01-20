@@ -34,22 +34,22 @@ import { parseVersionConstraints } from './utils/versionParser.js';
 
 const ddClient = createDockerDesktopClient();
 
-// OS Targets with labels
+// OS Targets fallback list
 const OS_TARGETS = [
-  { value: 'mariner2', label: 'Azure Linux 2 (formerly CBL-Mariner)' },
-  { value: 'azlinux3', label: 'Azure Linux 3' },
-  { value: 'bullseye', label: 'Debian 11 (Bullseye) (v0.11)' },
-  { value: 'bookworm', label: 'Debian 12 (Bookworm) (v0.11)' },
-  { value: 'trixie', label: 'Debian 13 (Trixie) (v0.next)' },
-  { value: 'bionic', label: 'Ubuntu 18.04 (Bionic) (v0.11)' },
-  { value: 'focal', label: 'Ubuntu 20.04 (focal) (v0.11)' },
-  { value: 'jammy', label: 'Ubuntu 22.04 (jammy) (v0.9)' },
-  { value: 'noble', label: 'Ubuntu 24.04 (noble) (v0.11)' },
-  { value: 'windowscross', label: 'Cross compile from Ubuntu Jammy to Windows' },
-  { value: 'almalinux9', label: 'AlmaLinux 9 (v0.13)' },
-  { value: 'almalinux8', label: 'AlmaLinux 8 (v0.13)' },
-  { value: 'rockylinux8', label: 'Rocky Linux 8 (v0.13)' },
-  { value: 'rockylinux9', label: 'Rocky Linux 9 (v0.13)' },
+  'mariner2',
+  'azlinux3',
+  'bullseye',
+  'bookworm',
+  'trixie',
+  'bionic',
+  'focal',
+  'jammy',
+  'noble',
+  'windowscross',
+  'almalinux9',
+  'almalinux8',
+  'rockylinux8',
+  'rockylinux9',
 ];
 
 export default function App() {
@@ -349,7 +349,7 @@ export default function App() {
             onChange={e => setOsTarget(e.target.value)}
           >
             {osTargets.map(os => (
-              <MenuItem key={os.value} value={os.value}>{os.label}</MenuItem>
+              <MenuItem key={os} value={os}>{os}</MenuItem>
             ))}
           </Select>
         </FormControl>
