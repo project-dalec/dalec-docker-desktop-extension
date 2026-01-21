@@ -30,11 +30,29 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import LogViewer from './components/LogViewer.jsx';
+import { parseVersionConstraints } from './utils/versionParser.js';
 
 const ddClient = createDockerDesktopClient();
 
+// OS Targets fallback list
+const OS_TARGETS = [
+  'mariner2',
+  'azlinux3',
+  'bullseye',
+  'bookworm',
+  'trixie',
+  'bionic',
+  'focal',
+  'jammy',
+  'noble',
+  'windowscross',
+  'almalinux9',
+  'almalinux8',
+  'rockylinux8',
+  'rockylinux9',
+];
+
 export default function App() {
-  const [osList, setOsList] = useState([]);
   const [packages, setPackages] = useState([]);
   const [selectedPackages, setSelectedPackages] = useState([
     { name: 'curl', version: '', type: 'runtime' },
@@ -45,6 +63,7 @@ export default function App() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [imageName, setImageName] = useState('my-minimal-image:0.1.0');
+  const [osTargets, setOsTargets] = useState(OS_TARGETS);
   const [osTarget, setOsTarget] = useState('azlinux3');
   const [buildId, setBuildId] = useState(null);
   const [status, setStatus] = useState(null);
@@ -55,11 +74,7 @@ export default function App() {
   const highlightedItemRef = useRef(null);
 
   useEffect(() => {
-    // Fetch OS list and packages from backend via Docker extension SDK
-    ddClient.extension.vm.service.get('/api/os')
-      .then(setOsList)
-      .catch(() => setOsList(['azlinux3']));
-
+    // Fetch packages from backend via Docker extension SDK
     ddClient.extension.vm.service.get('/api/packages')
       .then(setPackages)
       .catch(() => setPackages([
@@ -74,13 +89,27 @@ export default function App() {
         'less', 'nano', 'emacs', 'tree', 'findutils',
         'coreutils', 'util-linux', 'procps', 'psmisc'
       ]));
+
+    // Fetch OS targets from backend
+    ddClient.extension.vm.service.get('/api/os')
+      .then(setOsTargets)
+      .catch(() => setOsTargets(OS_TARGETS));
   }, []);
 
   useEffect(() => {
     // Group packages by type
     const depsByType = selectedPackages.reduce((acc, p) => {
       if (!acc[p.type]) acc[p.type] = {};
-      acc[p.type][p.name] = {};
+
+      // Parse version constraints using utility function
+      const versionConstraints = parseVersionConstraints(p.version);
+
+      const hasVersionConstraints = versionConstraints.length > 0;
+      let packageValue = {};
+      if (hasVersionConstraints) {
+        packageValue = { version: versionConstraints };
+      }
+      acc[p.type][p.name] = packageValue;
       return acc;
     }, {});
 
@@ -322,8 +351,8 @@ export default function App() {
             label="OS Target"
             onChange={e => setOsTarget(e.target.value)}
           >
-            {osList.map(o => (
-              <MenuItem key={o} value={o}>{o}</MenuItem>
+            {osTargets.map(os => (
+              <MenuItem key={os} value={os}>{os}</MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -460,7 +489,7 @@ export default function App() {
                           <TextField
                             value={pkg.version}
                             onChange={(e) => updatePackageVersion(pkg.name, pkg.type, e.target.value)}
-                            placeholder="latest"
+                            placeholder=">=1.0.0, <2.0.0"
                             size="small"
                             variant="standard"
                             fullWidth
