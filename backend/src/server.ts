@@ -108,9 +108,11 @@ app.get('/', (_req: Request, res: Response) => {
   );
 });
 
-if (fs.existsSync(socketPath)) {
+try {
   fs.unlinkSync(socketPath);
   console.log('Removed existing socket file');
+} catch (e: unknown) {
+  if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
 }
 
 app.listen(socketPath, () => {
