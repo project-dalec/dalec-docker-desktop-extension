@@ -22,15 +22,15 @@ RUN npm run build
 
 FROM node:22-alpine
 LABEL org.opencontainers.image.title="Dalec" \
-    org.opencontainers.image.description="Enables Easy DALEC Adoption" \
-    org.opencontainers.image.vendor="Awesome inc." \
+    org.opencontainers.image.description="Dalec Docker Desktop Extension" \
+    org.opencontainers.image.vendor="project-dalec" \
     com.docker.desktop.extension.api.version="0.3.4" \
     com.docker.extension.screenshots="" \
-    com.docker.desktop.extension.icon="" \
-    com.docker.extension.detailed-description="" \
-    com.docker.extension.publisher-url="" \
+    com.docker.desktop.extension.icon="logo.svg" \
+    com.docker.extension.detailed-description="Build minimal container images using the Dalec BuildKit frontend. Select an OS target, pick packages, preview the generated YAML spec, and build — all from a single UI inside Docker Desktop." \
+    com.docker.extension.publisher-url="https://github.com/project-dalec/dalec" \
     com.docker.extension.additional-urls="" \
-    com.docker.extension.categories="" \
+    com.docker.extension.categories="developer-tools" \
     com.docker.extension.changelog=""
 
 # Install required tools for builds
