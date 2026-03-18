@@ -5,7 +5,7 @@ import { buildManager } from './buildManager.js';
 import { fetchOsList } from './osProvider.js';
 import { fetchPackages } from './packageProvider.js';
 import type { BuildStatusResponse, StartBuildPayload } from './types.js';
-import { isValidImageName, isValidOsTarget } from './validators.js';
+import { isValidImageName, isValidOsTarget, isValidYamlSpec } from './validators.js';
 
 const app = express();
 app.use(express.json());
@@ -39,7 +39,7 @@ app.get('/api/packages', (_req: Request, res: Response) => {
 app.post('/api/build', (req: Request<unknown, unknown, StartBuildPayload>, res: Response) => {
   try {
     console.log('[build] Received build request:', req.body);
-    const { imageName, osTarget, packages } = req.body || {};
+    const { imageName, osTarget, packages, yamlSpec } = req.body || {};
 
     if (!imageName || !osTarget || !Array.isArray(packages) || packages.length === 0) {
       console.log('[build] Invalid request params');
@@ -54,6 +54,11 @@ app.post('/api/build', (req: Request<unknown, unknown, StartBuildPayload>, res: 
     if (!isValidOsTarget(osTarget)) {
       console.log('[build] Invalid osTarget:', osTarget);
       return res.status(400).json({ error: 'Invalid osTarget format' });
+    }
+
+    if (!isValidYamlSpec(yamlSpec)) {
+      console.log('[build] Invalid yamlSpec (missing #syntax=)');
+      return res.status(400).json({ error: 'Invalid yamlSpec format' });
     }
 
     const { id, command } = buildManager.startBuild(req.body);

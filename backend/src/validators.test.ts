@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isValidImageName, isValidOsTarget } from './validators.js';
+import { isValidImageName, isValidOsTarget, isValidYamlSpec } from './validators.js';
 
 // ── isValidImageName ────────────────────────────────────────────────────────
 
@@ -157,5 +157,47 @@ describe('isValidOsTarget', () => {
       expect(isValidOsTarget('azlinux3//container')).toBe(false);
     });
 
+  });
+});
+
+// ── isValidYamlSpec ──────────────────────────────────────────────────────────
+
+describe('isValidYamlSpec', () => {
+  it('accepts a string whose first non-empty line starts with #syntax=', () => {
+    const spec = `
+
+#syntax=ghcr.io/project-dalec/dalec/frontend:latest
+name: hello
+`;
+    expect(isValidYamlSpec(spec)).toBe(true);
+  });
+
+  it('accepts # syntax= with a space after #', () => {
+    const spec = `# syntax=ghcr.io/project-dalec/dalec/frontend:latest
+name: hello
+`;
+    expect(isValidYamlSpec(spec)).toBe(true);
+  });
+
+  it('rejects non-strings', () => {
+    expect(isValidYamlSpec(null)).toBe(false);
+    expect(isValidYamlSpec(undefined)).toBe(false);
+    expect(isValidYamlSpec(123)).toBe(false);
+    expect(isValidYamlSpec({})).toBe(false);
+  });
+
+  it('rejects empty/whitespace strings', () => {
+    expect(isValidYamlSpec('')).toBe(false);
+    expect(isValidYamlSpec('   \n\t')).toBe(false);
+  });
+
+  it('rejects strings missing #syntax=', () => {
+    const spec = `name: hello\nversion: 1.0.0\n`;
+    expect(isValidYamlSpec(spec)).toBe(false);
+  });
+
+  it('rejects when #syntax= is present but not first non-empty line', () => {
+    const spec = `name: hello\n#syntax=ghcr.io/project-dalec/dalec/frontend:latest\n`;
+    expect(isValidYamlSpec(spec)).toBe(false);
   });
 });

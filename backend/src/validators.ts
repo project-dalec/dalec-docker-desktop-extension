@@ -11,3 +11,14 @@ export function isValidImageName(name: string): boolean {
 export function isValidOsTarget(target: string): boolean {
   return OS_TARGET_RE.test(target);
 }
+
+export function isValidYamlSpec(yamlSpec: unknown): yamlSpec is string {
+  if (typeof yamlSpec !== 'string') return false;
+  const text = yamlSpec.trim();
+  if (!text) return false;
+
+  // Dalec uses a BuildKit frontend (`#syntax=...`) at the top of the spec.
+  // This is a lightweight structural check to catch obvious bad payloads early.
+  const firstNonEmptyLine = text.split(/\r?\n/).find((l) => l.trim() !== '')?.trim() ?? '';
+  return /^#\s*syntax=/.test(firstNonEmptyLine);
+}
