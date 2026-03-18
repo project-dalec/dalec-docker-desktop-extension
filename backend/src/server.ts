@@ -22,8 +22,14 @@ app.get('/api/health', (_req: Request, res: Response) => {
 });
 
 app.get('/api/os', async (_req: Request, res: Response) => {
-  const list = await fetchOsList();
-  res.json(list);
+  try {
+    const list = await fetchOsList();
+    res.json(list);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[os] Error fetching OS targets:', err);
+    res.status(500).json({ error: message });
+  }
 });
 
 app.get('/api/packages', (_req: Request, res: Response) => {
