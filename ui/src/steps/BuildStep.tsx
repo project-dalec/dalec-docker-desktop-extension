@@ -27,7 +27,25 @@ export const BuildStep: React.FC<BuildStepProps> = ({
   onNewBuild,
   onClearLogs,
 }) => {
-  const progressPct = buildDone ? 100 : Math.min(96, (logLines.length / 13) * 100);
+  // Parse the highest BuildKit step number from log lines (e.g. "#18 ...")
+  // and map it to an approximate progress percentage.
+  const progressPct = (() => {
+    if (buildDone) return 100;
+    if (!building || logLines.length === 0) return 0;
+
+    let maxStep = 0;
+    for (const line of logLines) {
+      const m = line.match(/^#(\d+)\b/);
+      if (m) maxStep = Math.max(maxStep, Number(m[1]));
+    }
+
+    if (maxStep >= 19) return 96;
+    if (maxStep >= 18) return 70;
+    if (maxStep >= 14) return 45;
+    if (maxStep >= 10) return 30;
+    if (maxStep >= 5)  return 15;
+    return 5;
+  })();
 
   return (
     <Box display="flex" flexDirection="column" gap={2}>
