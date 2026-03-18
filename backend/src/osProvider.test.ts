@@ -21,30 +21,17 @@ describe('osProvider', () => {
   });
 
   describe('fetchOsList', () => {
-    it('parses docker buildx targets response and extracts OS names from /container/depsonly targets', async () => {
+    it('parses docker buildx targets response and returns OsTarget objects for default targets', async () => {
       const mockResponse: TargetsResponse = {
         targets: [
-          {
-            name: 'almalinux8/container',
-            default: true,
-            description: 'Builds a container image for AlmaLinux 8',
-          },
-          {
-            name: 'almalinux8/container/depsonly',
-            description: 'Builds a container image with only the runtime dependencies installed.',
-          },
-          {
-            name: 'almalinux9/container/depsonly',
-            description: 'Builds a container image with only the runtime dependencies installed.',
-          },
-          {
-            name: 'azlinux3/container/depsonly',
-            description: 'Builds a container image with only the runtime dependencies installed.',
-          },
-          {
-            name: 'mariner2/container/depsonly',
-            description: 'Builds a container image with only the runtime dependencies installed.',
-          },
+          { name: 'almalinux8/container', default: true,  description: 'Builds a container image for AlmaLinux 8' },
+          { name: 'almalinux8/rpm',       default: true,  description: 'Builds an rpm for AlmaLinux 8' },
+          { name: 'almalinux9/container', default: true,  description: 'Builds a container image for AlmaLinux 9' },
+          { name: 'almalinux9/rpm',       default: true,  description: 'Builds an rpm for AlmaLinux 9' },
+          { name: 'azlinux3/container',   default: true,  description: 'Builds a container image for Azure Linux 3' },
+          { name: 'azlinux3/rpm',         default: true,  description: 'Builds an rpm for Azure Linux 3' },
+          { name: 'mariner2/container',   default: true,  description: 'Builds a container image for Mariner 2' },
+          { name: 'mariner2/rpm',         default: true,  description: 'Builds an rpm for Mariner 2' },
         ],
         sources: null,
       };
@@ -57,29 +44,18 @@ describe('osProvider', () => {
       const result = await fetchOsList();
 
       expect(result).toBeInstanceOf(Array);
-      expect(result).toContain('almalinux8');
-      expect(result).toContain('almalinux9');
-      expect(result).toContain('azlinux3');
-      expect(result).toContain('mariner2');
-      expect(result.length).toBe(4);
+      expect(result).toHaveLength(4);
+      expect(result).toContainEqual(expect.objectContaining({ id: 'almalinux8', label: 'AlmaLinux 8',   family: 'rpm' }));
+      expect(result).toContainEqual(expect.objectContaining({ id: 'almalinux9', label: 'AlmaLinux 9',   family: 'rpm' }));
+      expect(result).toContainEqual(expect.objectContaining({ id: 'azlinux3',   label: 'Azure Linux 3', family: 'rpm' }));
+      expect(result).toContainEqual(expect.objectContaining({ id: 'mariner2',   label: 'CBL-Mariner 2', family: 'rpm' }));
     });
 
-    it('filters only /container/depsonly targets and strips suffix', async () => {
+    it('deduplicates OS ids when multiple default sub-targets share the same prefix', async () => {
       const mockResponse: TargetsResponse = {
         targets: [
-          {
-            name: 'azlinux3/container',
-            default: true,
-            description: 'Builds a container image for Azure Linux 3',
-          },
-          {
-            name: 'azlinux3/container/depsonly',
-            description: 'Builds a container image with only the runtime dependencies installed.',
-          },
-          {
-            name: 'azlinux3/rpm',
-            description: 'Builds an rpm and src.rpm.',
-          },
+          { name: 'azlinux3/container', default: true, description: 'Builds a container image for Azure Linux 3' },
+          { name: 'azlinux3/rpm',       default: true, description: 'Builds an rpm' },
         ],
         sources: null,
       };
@@ -91,9 +67,28 @@ describe('osProvider', () => {
 
       const result = await fetchOsList();
 
-      expect(result).toEqual(['azlinux3']);
-      expect(result).not.toContain('azlinux3/container');
-      expect(result).not.toContain('azlinux3/rpm');
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ id: 'azlinux3', label: 'Azure Linux 3', family: 'rpm', group: 'RPM-based' });
+    });
+
+    it('infers deb family when an <id>/deb target exists in the full target list', async () => {
+      const mockResponse: TargetsResponse = {
+        targets: [
+          { name: 'bookworm/container', default: true, description: 'Builds a container image for Bookworm' },
+          { name: 'bookworm/deb',                      description: 'Builds a deb package' },
+        ],
+        sources: null,
+      };
+
+      vi.mocked(exec).mockImplementation((cmd, options, callback) => {
+        callback?.(null, JSON.stringify(mockResponse), '');
+        return {} as ChildProcess;
+      });
+
+      const result = await fetchOsList();
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({ id: 'bookworm', label: 'Debian Bookworm 12', family: 'deb', group: 'Debian / Ubuntu' });
     });
 
     it('falls back to hardcoded list on command error', async () => {
@@ -105,9 +100,9 @@ describe('osProvider', () => {
       const result = await fetchOsList();
 
       expect(result).toBeInstanceOf(Array);
-      expect(result).toContain('azlinux3');
-      expect(result).toContain('mariner2');
-      expect(result).toContain('almalinux8');
+      expect(result).toContainEqual(expect.objectContaining({ id: 'azlinux3' }));
+      expect(result).toContainEqual(expect.objectContaining({ id: 'mariner2' }));
+      expect(result).toContainEqual(expect.objectContaining({ id: 'almalinux8' }));
     });
 
     it('falls back to hardcoded list on invalid JSON', async () => {
@@ -151,17 +146,11 @@ describe('osProvider', () => {
       expect(result.length).toBeGreaterThan(0);
     });
 
-    it('falls back to hardcoded list when no /container/depsonly targets found', async () => {
+    it('falls back to hardcoded list when no targets have default: true', async () => {
       const mockResponse: TargetsResponse = {
         targets: [
-          {
-            name: 'azlinux3/container',
-            description: 'Builds a container image',
-          },
-          {
-            name: 'azlinux3/rpm',
-            description: 'Builds an rpm',
-          },
+          { name: 'azlinux3/container', description: 'Builds a container image' },
+          { name: 'azlinux3/rpm',       description: 'Builds an rpm' },
         ],
         sources: null,
       };
@@ -174,13 +163,18 @@ describe('osProvider', () => {
       const result = await fetchOsList();
 
       expect(result).toBeInstanceOf(Array);
-      expect(result).toContain('azlinux3');
-      expect(result).toContain('mariner2');
+      expect(result).toContainEqual(expect.objectContaining({ id: 'azlinux3' }));
+      expect(result).toContainEqual(expect.objectContaining({ id: 'mariner2' }));
     });
 
     it('uses correct docker buildx command', async () => {
+      const mockResponse: TargetsResponse = {
+        targets: [{ name: 'azlinux3/container', default: true }],
+        sources: null,
+      };
+
       vi.mocked(exec).mockImplementation((cmd, options, callback) => {
-        callback?.(null, JSON.stringify({ targets: [{ name: 'test/container/depsonly' }], sources: null }), '');
+        callback?.(null, JSON.stringify(mockResponse), '');
         return {} as ChildProcess;
       });
 
@@ -194,4 +188,3 @@ describe('osProvider', () => {
     });
   });
 });
-

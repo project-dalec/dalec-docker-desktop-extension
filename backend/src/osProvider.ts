@@ -23,7 +23,14 @@ const LABEL_MAP: Record<string, string> = {
 function buildOsTarget(id: string, allTargetNames: Set<string>): OsTarget {
   const hasDeb = allTargetNames.has(`${id}/deb`);
   const hasRpm = allTargetNames.has(`${id}/rpm`);
-  const family: OsFamily = id === 'windowscross' ? 'windows' : hasDeb ? 'deb' : 'rpm';
+  const family: OsFamily =
+    id === 'windowscross'
+      ? 'windows'
+      : hasDeb
+        ? 'deb'
+        : hasRpm
+          ? 'rpm'
+          : 'deb';
   const group = family === 'windows' ? 'Windows'
     : family === 'rpm' ? 'RPM-based'
     : 'Debian / Ubuntu';
