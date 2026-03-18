@@ -52,7 +52,8 @@ class BuildManager {
     fs.mkdirSync(tmpDir, { recursive: true });
     fs.writeFileSync(path.join(tmpDir, 'Dockerfile'), yamlSpec);
 
-    const cmd = `DOCKER_BUILDKIT=1 docker build -t ${imageName} --target=${osTarget} ${tmpDir}`;
+    const args = ['build', '-t', imageName, `--target=${osTarget}`, tmpDir];
+    const cmd = `DOCKER_BUILDKIT=1 docker ${args.join(' ')}`;
 
     console.log(`[buildManager] Starting build ${id}:`, { imageName, osTarget, packages });
     console.log('[buildManager] Command:', cmd);
@@ -71,7 +72,9 @@ class BuildManager {
 
     this.builds.set(id, record);
 
-    const child: ChildProcessWithoutNullStreams = spawn('bash', ['-lc', cmd], { env: process.env });
+    const child: ChildProcessWithoutNullStreams = spawn('docker', args, {
+      env: { ...process.env, DOCKER_BUILDKIT: '1' },
+    });
 
     console.log(`[buildManager] Spawned process for build ${id}`);
 
