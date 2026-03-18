@@ -4,15 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
     "test": "vitest --run"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
-    "uuid": "^9.0.1"
+    "uuid": "^11.0.0"
   },
   "devDependencies": {
+    "@types/cors": "latest",
+    "@types/express": "latest",
+    "@types/node": "latest",
+    "typescript": "latest",
     "vitest": "^4.0.17"
   }
 }
