@@ -1,5 +1,6 @@
 import React from 'react';
 import { AppBar, Toolbar, Box, Typography, Container } from '@mui/material';
+import logoSvg from '../assets/logo.svg';
 
 /**
  * Sticky top bar shown on every step.
@@ -22,22 +23,15 @@ export const AppHeader: React.FC = () => {
         <Toolbar disableGutters sx={{ minHeight: 52, px: 3, gap: 1.5 }}>
         {/* Logo */}
         <Box
+          component="img"
+          src={logoSvg}
+          alt="Dalec"
           sx={{
             width: 28,
             height: 28,
-            borderRadius: '7px',
-            bgcolor: 'primary.main',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 700,
-            fontSize: 14,
-            color: 'primary.contrastText',
             flexShrink: 0,
           }}
-        >
-          D
-        </Box>
+        />
 
         <Typography variant="subtitle1" fontWeight={600} sx={{ letterSpacing: '-0.3px' }}>
           Dalec
