@@ -1,0 +1,89 @@
+import type { ImageSpec } from '../types';
+import { DEP_TYPES, getBuildTarget } from '../constants/targets';
+
+export function generateYAML(spec: ImageSpec): string {
+  const { name, version, description, website, revision, license, packages, entrypoint, cmd, workdir, user, envVars, labels } = spec;
+  const lines: string[] = [];
+
+  lines.push('# syntax=ghcr.io/project-dalec/dalec/frontend:latest');
+  lines.push(`name: ${name || 'my-image'}`);
+  lines.push(`version: ${version || '0.1.0'}`);
+  lines.push(`revision: "${revision || '1'}"`);
+  lines.push(`description: "${description}"`);
+  lines.push(`website: "${website}"`);
+  lines.push(`license: "${license}"`);
+
+  const hasAnyPkg = DEP_TYPES.some((dt) => (packages[dt.id] ?? []).length > 0);
+  if (hasAnyPkg) {
+    lines.push('');
+    lines.push('dependencies:');
+    DEP_TYPES.forEach(({ id }) => {
+      const pkgs = packages[id] ?? [];
+      if (!pkgs.length) return;
+      lines.push(`  ${id}:`);
+      pkgs.forEach((pkg) => {
+        const activeConstraints = pkg.versions.filter((v) => v.op && v.val);
+        if (!activeConstraints.length) {
+          lines.push(`    ${pkg.name}: {}`);
+        } else {
+          lines.push(`    ${pkg.name}:`);
+          lines.push(`      version:`);
+          activeConstraints.forEach((c) => lines.push(`        - "${c.op}${c.val}"`));
+        }
+      });
+    });
+  }
+
+  lines.push('');
+  lines.push('image:');
+  if (entrypoint) lines.push(`  entrypoint: ${entrypoint}`);
+  if (cmd)        lines.push(`  cmd: ${cmd}`);
+  if (workdir)    lines.push(`  workdir: ${workdir}`);
+  if (user)       lines.push(`  user: ${user}`);
+
+  const activeEnv = envVars.filter((e) => e.key);
+  if (activeEnv.length) {
+    lines.push('  env:');
+    activeEnv.forEach((e) => lines.push(`    - ${e.key}=${e.value}`));
+  }
+
+  const activeLabels = labels.filter((l) => l.key);
+  if (activeLabels.length) {
+    lines.push('  labels:');
+    activeLabels.forEach((l) => lines.push(`    ${l.key}: "${l.value}"`));
+  }
+
+  return lines.join('\n');
+}
+
+export function generateBuildCommand(spec: ImageSpec): string {
+  const { name, version, target } = spec;
+  const buildTarget = target ? getBuildTarget(target) : '';
+  return [
+    `docker buildx build \\`,
+    `  -f ${name || 'spec'}.yml \\`,
+    `  --target=${buildTarget} \\`,
+    `  -t ${name || 'my-image'}:${version || '0.1.0'} \\`,
+    `  --load \\`,
+    `  .`,
+  ].join('\n');
+}
+
+export type YamlLineCategory =
+  | 'comment'
+  | 'topKey'
+  | 'subKey'
+  | 'packageLeaf'
+  | 'packageName'
+  | 'constraint'
+  | 'default';
+
+export function categorizeYamlLine(line: string): YamlLineCategory {
+  if (line.startsWith('#'))                                                  return 'comment';
+  if (/^(name|version|revision|description|website|license|dependencies|image):/.test(line)) return 'topKey';
+  if (/^\s+(runtime|build|recommends|test|env|labels|version):/.test(line)) return 'subKey';
+  if (line.includes(': {}'))                                                 return 'packageLeaf';
+  if (/^\s{4,8}[\w][\w-]+:/.test(line) && !line.includes('{}'))            return 'packageName';
+  if (/^\s*- "/.test(line))                                                  return 'constraint';
+  return 'default';
+}

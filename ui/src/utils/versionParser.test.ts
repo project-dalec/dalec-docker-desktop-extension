@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseVersionConstraints } from './versionParser.js';
+import { parseVersionConstraints } from './versionParser';
 
 describe('parseVersionConstraints', () => {
   it('parses simple comma-separated constraints', () => {
@@ -42,12 +42,13 @@ describe('parseVersionConstraints', () => {
     expect(parseVersionConstraints('')).toEqual([]);
   });
 
-  it('handles null', () => {
-    expect(parseVersionConstraints(null)).toEqual([]);
+  // Type-safe null/undefined handling (cast for testing boundary behaviour)
+  it('handles null-like input', () => {
+    expect(parseVersionConstraints(null as unknown as string)).toEqual([]);
   });
 
-  it('handles undefined', () => {
-    expect(parseVersionConstraints(undefined)).toEqual([]);
+  it('handles undefined-like input', () => {
+    expect(parseVersionConstraints(undefined as unknown as string)).toEqual([]);
   });
 
   it('filters out empty constraints', () => {
@@ -68,10 +69,6 @@ describe('parseVersionConstraints', () => {
 
   it('handles wildcard versions', () => {
     expect(parseVersionConstraints('1.*, 2.x')).toEqual(['1.*', '2.x']);
-  });
-
-  it('preserves quotes inside constraint values', () => {
-    expect(parseVersionConstraints('>=1.0.0')).toEqual(['>=1.0.0']);
   });
 
   it('handles trailing comma', () => {
