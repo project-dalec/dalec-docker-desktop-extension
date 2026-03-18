@@ -39,7 +39,7 @@ RUN apk add --no-cache bash jq docker-cli docker-cli-buildx
 # Copy metadata to root (required by Docker Desktop)
 COPY docker-compose.yaml /
 COPY metadata.json /
-COPY docker.svg /
+COPY logo.svg /
 
 # Copy UI to root (required by Docker Desktop)
 COPY --from=client-builder /ui/dist /ui
