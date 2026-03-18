@@ -1,11 +1,11 @@
 import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
 import { buildManager } from './buildManager.js';
 import { fetchOsList } from './osProvider.js';
 import { fetchPackages } from './packageProvider.js';
 import type { BuildStatusResponse, StartBuildPayload } from './types.js';
+import { isValidImageName, isValidOsTarget } from './validators.js';
 
 const app = express();
 app.use(express.json());
@@ -46,6 +46,16 @@ app.post('/api/build', (req: Request<unknown, unknown, StartBuildPayload>, res: 
       return res.status(400).json({ error: 'imageName, osTarget and packages[] required' });
     }
 
+    if (!isValidImageName(imageName)) {
+      console.log('[build] Invalid imageName:', imageName);
+      return res.status(400).json({ error: 'Invalid imageName format' });
+    }
+
+    if (!isValidOsTarget(osTarget)) {
+      console.log('[build] Invalid osTarget:', osTarget);
+      return res.status(400).json({ error: 'Invalid osTarget format' });
+    }
+
     const { id, command } = buildManager.startBuild(req.body);
     console.log(`[build] Started build ${id}`);
     res.json({ buildId: id, command });
@@ -84,6 +94,11 @@ app.post('/api/image/run', async (req: Request, res: Response) => {
   const { imageName } = (req.body ?? {}) as { imageName?: string };
   if (!imageName) {
     return res.status(400).json({ error: 'imageName required' });
+  }
+
+  if (!isValidImageName(imageName)) {
+    console.log('[image/run] Invalid imageName:', imageName);
+    return res.status(400).json({ error: 'Invalid imageName format' });
   }
 
   const { exec }      = await import('child_process');
