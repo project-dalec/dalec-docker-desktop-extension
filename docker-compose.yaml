@@ -4,5 +4,3 @@ services:
     volumes:
       # Mount Docker socket to run docker commands
       - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - PORT=8080
