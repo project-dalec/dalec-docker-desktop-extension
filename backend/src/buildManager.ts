@@ -17,10 +17,30 @@ interface BuildRecord {
   osTarget: string;
   packages: string[];
   digest?: string;
+  createdAt: number;
+  finishedAt?: number;
 }
 
 class BuildManager {
   private readonly builds = new Map<string, BuildRecord>();
+  private readonly ttlMs = 10 * 60 * 1000;
+  private readonly cleanupIntervalMs = 60 * 1000;
+  private readonly cleanupTimer: NodeJS.Timeout;
+
+  constructor() {
+    this.cleanupTimer = setInterval(() => this.evictExpiredBuilds(), this.cleanupIntervalMs);
+    // Don't keep the process alive just for cleanup
+    this.cleanupTimer.unref?.();
+  }
+
+  private evictExpiredBuilds(now = Date.now()) {
+    for (const [id, record] of this.builds) {
+      if (record.status === 'running') continue;
+      if (!record.finishedAt) continue;
+      if (now - record.finishedAt < this.ttlMs) continue;
+      this.builds.delete(id);
+    }
+  }
 
   startBuild(payload: StartBuildPayload): { id: string; command: string } {
     const { imageName, osTarget, yamlSpec, packages } = payload;
@@ -46,6 +66,7 @@ class BuildManager {
       imageName,
       osTarget,
       packages,
+      createdAt: Date.now(),
     };
 
     this.builds.set(id, record);
@@ -72,6 +93,7 @@ class BuildManager {
       fs.rmSync(tmpDir, { recursive: true, force: true });
       console.log(`[buildManager] Build ${id} closed with code ${code}`);
       record.status = code === 0 ? 'completed' : 'failed';
+      record.finishedAt = Date.now();
 
       if (code !== 0) {
         record.error = `Exited with code ${code}`;
@@ -105,6 +127,7 @@ class BuildManager {
       console.error(`[buildManager] Build ${id} process error:`, err);
       record.status = 'failed';
       record.error = err.message;
+      record.finishedAt = Date.now();
       emitter.emit('end', { status: record.status, error: record.error });
     });
 
@@ -112,6 +135,7 @@ class BuildManager {
   }
 
   getBuild(id: string): BuildRecord | undefined {
+    this.evictExpiredBuilds();
     return this.builds.get(id);
   }
 }
