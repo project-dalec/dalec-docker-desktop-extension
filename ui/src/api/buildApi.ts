@@ -12,7 +12,3 @@ export async function startBuild(payload: StartBuildPayload): Promise<{ buildId:
 export async function getBuildStatus(buildId: string): Promise<BuildStatusResponse> {
   return svc().get(`/api/build/${buildId}/status`) as Promise<BuildStatusResponse>;
 }
-
-export async function runImage(imageName: string): Promise<{ containerId: string }> {
-  return svc().post('/api/image/run', { imageName }) as Promise<{ containerId: string }>;
-}

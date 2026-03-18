@@ -90,31 +90,6 @@ app.get('/api/build/:id/status', (req: Request<{ id: string }>, res: Response<Bu
   res.json(payload);
 });
 
-app.post('/api/image/run', async (req: Request, res: Response) => {
-  const { imageName } = (req.body ?? {}) as { imageName?: string };
-  if (!imageName) {
-    return res.status(400).json({ error: 'imageName required' });
-  }
-
-  if (!isValidImageName(imageName)) {
-    console.log('[image/run] Invalid imageName:', imageName);
-    return res.status(400).json({ error: 'Invalid imageName format' });
-  }
-
-  const { exec }      = await import('child_process');
-  const { promisify } = await import('util');
-  const execAsync     = promisify(exec);
-
-  try {
-    const { stdout }  = await execAsync(`docker run -d ${imageName}`);
-    const containerId = stdout.trim().substring(0, 12);
-    res.json({ containerId, imageName });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ error: message });
-  }
-});
-
 const socketPath = process.env.SOCKET_PATH || '/run/guest-services/backend.sock';
 
 app.get('/', (_req: Request, res: Response) => {
