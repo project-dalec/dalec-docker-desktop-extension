@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fetchOsList } from './osProvider.js';
 import { exec } from 'child_process';
+import { mkdtemp, writeFile, rm } from 'fs/promises';
 
 vi.mock('child_process');
+vi.mock('fs/promises');
 
 /**
  * @typedef {Object} Target
@@ -20,6 +22,9 @@ vi.mock('child_process');
 describe('osProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(mkdtemp).mockResolvedValue('/tmp/dalec-abc123');
+    vi.mocked(writeFile).mockResolvedValue(undefined);
+    vi.mocked(rm).mockResolvedValue(undefined);
   });
 
   describe('fetchOsList', () => {
@@ -99,42 +104,37 @@ describe('osProvider', () => {
       expect(result).not.toContain('azlinux3/rpm');
     });
 
-    it('falls back to hardcoded list on command error', async () => {
+    it('falls back to default on command error', async () => {
       vi.mocked(exec).mockImplementation((cmd, options, callback) => {
         callback(new Error('Command failed'), null);
       });
 
       const result = await fetchOsList();
 
-      expect(result).toBeInstanceOf(Array);
-      expect(result).toContain('azlinux3');
-      expect(result).toContain('mariner2');
-      expect(result).toContain('almalinux8');
+      expect(result).toEqual(['azlinux3']);
     });
 
-    it('falls back to hardcoded list on invalid JSON', async () => {
+    it('falls back to default on invalid JSON', async () => {
       vi.mocked(exec).mockImplementation((cmd, options, callback) => {
         callback(null, 'invalid json');
       });
 
       const result = await fetchOsList();
 
-      expect(result).toBeInstanceOf(Array);
-      expect(result.length).toBeGreaterThan(0);
+      expect(result).toEqual(['azlinux3']);
     });
 
-    it('falls back to hardcoded list when targets field is missing', async () => {
+    it('falls back to default when targets field is missing', async () => {
       vi.mocked(exec).mockImplementation((cmd, options, callback) => {
         callback(null, JSON.stringify({ sources: null }));
       });
 
       const result = await fetchOsList();
 
-      expect(result).toBeInstanceOf(Array);
-      expect(result.length).toBeGreaterThan(0);
+      expect(result).toEqual(['azlinux3']);
     });
 
-    it('falls back to hardcoded list when targets array is empty', async () => {
+    it('falls back to default when targets array is empty', async () => {
       /** @type {TargetsResponse} */
       const mockResponse = {
         "targets": [],
@@ -147,11 +147,10 @@ describe('osProvider', () => {
 
       const result = await fetchOsList();
 
-      expect(result).toBeInstanceOf(Array);
-      expect(result.length).toBeGreaterThan(0);
+      expect(result).toEqual(['azlinux3']);
     });
 
-    it('falls back to hardcoded list when no /container/depsonly targets found', async () => {
+    it('falls back to default when no /container/depsonly targets found', async () => {
       /** @type {TargetsResponse} */
       const mockResponse = {
         "targets": [
@@ -173,23 +172,63 @@ describe('osProvider', () => {
 
       const result = await fetchOsList();
 
-      expect(result).toBeInstanceOf(Array);
-      expect(result).toContain('azlinux3');
-      expect(result).toContain('mariner2');
+      expect(result).toEqual(['azlinux3']);
     });
 
-    it('uses correct docker buildx command', async () => {
+    it('creates a temp dir with a Dockerfile and passes it to docker buildx', async () => {
       vi.mocked(exec).mockImplementation((cmd, options, callback) => {
         callback(null, JSON.stringify({ targets: [{ name: "test/container/depsonly" }], sources: null }));
       });
 
       await fetchOsList();
 
+      expect(mkdtemp).toHaveBeenCalledWith(expect.stringContaining('dalec-'));
+      expect(writeFile).toHaveBeenCalledWith('/tmp/dalec-abc123/Dockerfile', '{}');
       expect(exec).toHaveBeenCalledWith(
-        expect.stringContaining('docker buildx build --call targets,format=json'),
-        expect.objectContaining({ timeout: 10000, shell: '/bin/bash' }),
+        expect.stringContaining('/tmp/dalec-abc123'),
+        expect.objectContaining({ timeout: 10000 }),
         expect.any(Function)
       );
+    });
+
+    it('does not require bash shell', async () => {
+      vi.mocked(exec).mockImplementation((cmd, options, callback) => {
+        callback(null, JSON.stringify({ targets: [{ name: "test/container/depsonly" }], sources: null }));
+      });
+
+      await fetchOsList();
+
+      const execCall = vi.mocked(exec).mock.calls[0];
+      const options = execCall[1];
+      expect(options).not.toHaveProperty('shell');
+    });
+
+    it('cleans up temp dir after successful fetch', async () => {
+      vi.mocked(exec).mockImplementation((cmd, options, callback) => {
+        callback(null, JSON.stringify({ targets: [{ name: "test/container/depsonly" }], sources: null }));
+      });
+
+      await fetchOsList();
+
+      expect(rm).toHaveBeenCalledWith('/tmp/dalec-abc123', { recursive: true });
+    });
+
+    it('cleans up temp dir after command error', async () => {
+      vi.mocked(exec).mockImplementation((cmd, options, callback) => {
+        callback(new Error('Command failed'), null);
+      });
+
+      await fetchOsList();
+
+      expect(rm).toHaveBeenCalledWith('/tmp/dalec-abc123', { recursive: true });
+    });
+
+    it('falls back to default when mkdtemp fails', async () => {
+      vi.mocked(mkdtemp).mockRejectedValue(new Error('Cannot create temp dir'));
+
+      const result = await fetchOsList();
+
+      expect(result).toEqual(['azlinux3']);
     });
   });
 });

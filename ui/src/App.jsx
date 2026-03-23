@@ -34,23 +34,6 @@ import { parseVersionConstraints } from './utils/versionParser.js';
 
 const ddClient = createDockerDesktopClient();
 
-// OS Targets fallback list
-const OS_TARGETS = [
-  'mariner2',
-  'azlinux3',
-  'bullseye',
-  'bookworm',
-  'trixie',
-  'bionic',
-  'focal',
-  'jammy',
-  'noble',
-  'windowscross',
-  'almalinux9',
-  'almalinux8',
-  'rockylinux8',
-  'rockylinux9',
-];
 
 export default function App() {
   const [packages, setPackages] = useState([]);
@@ -63,7 +46,7 @@ export default function App() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [imageName, setImageName] = useState('my-minimal-image:0.1.0');
-  const [osTargets, setOsTargets] = useState(OS_TARGETS);
+  const [osTargets, setOsTargets] = useState(['azlinux3']);
   const [osTarget, setOsTarget] = useState('azlinux3');
   const [buildId, setBuildId] = useState(null);
   const [status, setStatus] = useState(null);
@@ -93,7 +76,7 @@ export default function App() {
     // Fetch OS targets from backend
     ddClient.extension.vm.service.get('/api/os')
       .then(setOsTargets)
-      .catch(() => setOsTargets(OS_TARGETS));
+      .catch(() => setOsTargets(['azlinux3']));
   }, []);
 
   useEffect(() => {
