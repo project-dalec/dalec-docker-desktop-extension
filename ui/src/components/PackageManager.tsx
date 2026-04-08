@@ -247,15 +247,16 @@ export const PackageManager: React.FC<PackageManagerProps> = ({
           </Box>
 
           <Button
-            variant="outlined"
             onClick={() => addPackage()}
             startIcon={<AddIcon />}
-            color="success"
             disabled={!input.trim()}
+            size="small"
             sx={{
               whiteSpace: 'nowrap',
-              fontSize: 12,
-              fontWeight: 600,
+              color: 'text.primary',
+              fontSize: 11,
+              textTransform: 'none',
+              '&:hover': { opacity: 0.8 },
             }}
           >
             Add

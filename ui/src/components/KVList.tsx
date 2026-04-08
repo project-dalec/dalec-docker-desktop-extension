@@ -82,10 +82,10 @@ export const KVList: React.FC<KVListProps> = ({
         size="small"
         sx={{
           alignSelf: 'flex-start',
-          color: 'text.secondary',
+          color: 'text.primary',
           fontSize: 11,
           textTransform: 'none',
-          '&:hover': { color: 'text.primary' },
+          '&:hover': { opacity: 0.8 },
         }}
       >
         Add
