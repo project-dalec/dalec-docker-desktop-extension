@@ -6,7 +6,7 @@ import { ConfigureStep } from './steps/ConfigureStep';
 import { PreviewStep } from './steps/PreviewStep';
 import { BuildStep } from './steps/BuildStep';
 import { generateYAML, generateBuildCommand } from './utils/yamlGenerator';
-import { EMPTY_PACKAGES_MAP, getBuildTarget } from './constants/targets';
+import { EMPTY_PACKAGES_MAP, getBuildTarget, BUILD_POLL_INTERVAL_MS } from './constants/targets';
 import { getAvailableTargets } from './api/osApi';
 import { getPackages } from './api/packageApi';
 import { startBuild, getBuildStatus } from './api/buildApi';
@@ -138,7 +138,7 @@ export default function App() {
           setBuilding(false);
           setLogLines((prev) => [...prev, `Error polling build status: ${String(err)}`]);
         }
-      }, 500);
+      }, BUILD_POLL_INTERVAL_MS);
     } catch (err) {
       setBuilding(false);
       setLogLines([`Failed to start build: ${String(err)}`]);
