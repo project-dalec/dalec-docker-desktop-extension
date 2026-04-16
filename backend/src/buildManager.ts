@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { EventEmitter } from 'events';
-import { spawn, exec, ChildProcessWithoutNullStreams } from 'child_process';
-import { v4 as uuidv4 } from 'uuid';
+import { spawn, execFile, ChildProcessWithoutNullStreams } from 'child_process';
+import crypto from 'crypto';
 import type { StartBuildPayload } from './types.js';
 
 type BuildStatus = 'running' | 'completed' | 'failed';
@@ -45,7 +45,7 @@ class BuildManager {
   startBuild(payload: StartBuildPayload): { id: string; command: string } {
     const { imageName, osTarget, yamlSpec, packages } = payload;
 
-    const id      = uuidv4();
+    const id      = crypto.randomUUID();
     const emitter = new EventEmitter();
     const tmpDir  = `/tmp/dalec-build-${id}`;
 
@@ -104,9 +104,9 @@ class BuildManager {
         emitter.emit('end', { status: record.status, error: record.error });
       } else {
         console.log(`[buildManager] Build ${id} completed successfully, inspecting image…`);
-        exec(
-          `docker inspect --format='{{.Id}}' ${imageName}`,
-          (inspectErr, stdout) => {
+        execFile(
+          'docker', ['inspect', '--format={{.Id}}', imageName],
+          (inspectErr: Error | null, stdout: string) => {
             if (!inspectErr) {
               record.digest = stdout.trim().replace(/^'|'$/g, '');
               console.log(`[buildManager] Build ${id} digest:`, record.digest);
