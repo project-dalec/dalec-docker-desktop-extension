@@ -1,17 +1,22 @@
 import type { ImageSpec } from '../types';
 import { DEP_TYPES, getBuildTarget } from '../constants/targets';
 
+/** Escape a string for safe inclusion as a YAML double-quoted value. */
+function yamlEscape(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 export function generateYAML(spec: ImageSpec): string {
   const { name, version, description, website, revision, license, packages, entrypoint, cmd, workdir, user, envVars, labels } = spec;
   const lines: string[] = [];
 
   lines.push('# syntax=ghcr.io/project-dalec/dalec/frontend:latest');
-  lines.push(`name: ${name || 'my-image'}`);
-  lines.push(`version: ${version || '0.1.0'}`);
-  lines.push(`revision: "${revision || '1'}"`);
-  lines.push(`description: "${description}"`);
-  lines.push(`website: "${website}"`);
-  lines.push(`license: "${license}"`);
+  lines.push(`name: "${yamlEscape(name || 'my-image')}"`);
+  lines.push(`version: "${yamlEscape(version || '0.1.0')}"`);
+  lines.push(`revision: "${yamlEscape(revision || '1')}"`);
+  lines.push(`description: "${yamlEscape(description)}"`);
+  lines.push(`website: "${yamlEscape(website)}"`);
+  lines.push(`license: "${yamlEscape(license)}"`);
 
   const hasAnyPkg = DEP_TYPES.some((dt) => (packages[dt.id] ?? []).length > 0);
   if (hasAnyPkg) {
