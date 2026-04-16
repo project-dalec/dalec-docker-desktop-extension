@@ -66,7 +66,7 @@ export const ConfigureStep: React.FC<ConfigureStepProps> = ({
 }) => {
   const family = spec.target?.family ?? 'deb';
   const totalPkgs = Object.values(spec.packages).flat().length;
-  const isValid = !!(spec.name && spec.version && totalPkgs > 0);
+  const isValid = !!(spec.name && spec.version && spec.description && spec.website && spec.license && totalPkgs > 0);
 
   return (
     <Box display="flex" flexDirection="column" gap={2.5}>
@@ -74,7 +74,7 @@ export const ConfigureStep: React.FC<ConfigureStepProps> = ({
       <SectionBox title="Image Metadata">
         <Grid container spacing={1.5}>
           <Grid size={{ xs: 5 }}>
-            <FieldLabel>Name</FieldLabel>
+            <FieldLabel required>Name</FieldLabel>
             <TextField
               value={spec.name}
               onChange={(e) => onSpecChange({ name: e.target.value })}
@@ -84,7 +84,7 @@ export const ConfigureStep: React.FC<ConfigureStepProps> = ({
             />
           </Grid>
           <Grid size={{ xs: 4 }}>
-            <FieldLabel>Version</FieldLabel>
+            <FieldLabel required>Version</FieldLabel>
             <TextField
               value={spec.version}
               onChange={(e) => onSpecChange({ version: e.target.value })}
@@ -104,7 +104,7 @@ export const ConfigureStep: React.FC<ConfigureStepProps> = ({
             />
           </Grid>
           <Grid size={{ xs: 12 }}>
-            <FieldLabel>Description</FieldLabel>
+            <FieldLabel required>Description</FieldLabel>
             <TextField
               value={spec.description}
               onChange={(e) => onSpecChange({ description: e.target.value })}
@@ -114,7 +114,7 @@ export const ConfigureStep: React.FC<ConfigureStepProps> = ({
             />
           </Grid>
           <Grid size={{ xs: 6 }}>
-            <FieldLabel>Website</FieldLabel>
+            <FieldLabel required>Website</FieldLabel>
             <TextField
               value={spec.website}
               onChange={(e) => onSpecChange({ website: e.target.value })}
@@ -124,7 +124,7 @@ export const ConfigureStep: React.FC<ConfigureStepProps> = ({
             />
           </Grid>
           <Grid size={{ xs: 6 }}>
-            <FieldLabel>License</FieldLabel>
+            <FieldLabel required>License</FieldLabel>
             <TextField
               value={spec.license}
               onChange={(e) => onSpecChange({ license: e.target.value })}
