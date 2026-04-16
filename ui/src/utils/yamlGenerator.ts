@@ -17,6 +17,7 @@ export function generateYAML(spec: ImageSpec): string {
   lines.push(`description: "${yamlEscape(description)}"`);
   lines.push(`website: "${yamlEscape(website)}"`);
   lines.push(`license: "${yamlEscape(license)}"`);
+  lines.push('packager: builtin');
 
   const hasAnyPkg = DEP_TYPES.some((dt) => (packages[dt.id] ?? []).length > 0);
   if (hasAnyPkg) {
@@ -85,7 +86,7 @@ export type YamlLineCategory =
 
 export function categorizeYamlLine(line: string): YamlLineCategory {
   if (line.startsWith('#'))                                                  return 'comment';
-  if (/^(name|version|revision|description|website|license|dependencies|image):/.test(line)) return 'topKey';
+  if (/^(name|version|revision|description|website|license|packager|dependencies|image):/.test(line)) return 'topKey';
   if (/^\s+(runtime|build|recommends|test|env|labels|version):/.test(line)) return 'subKey';
   if (line.includes(': {}'))                                                 return 'packageLeaf';
   if (/^\s{4,8}[\w][\w-]+:/.test(line) && !line.includes('{}'))            return 'packageName';
