@@ -10,6 +10,7 @@ import {
 import { alpha } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { KVList } from './KVList';
+import { FieldLabel } from './FieldLabel';
 import type { KVItem } from '../types';
 
 interface ImageConfigProps {
@@ -26,22 +27,6 @@ interface ImageConfigProps {
   onEnvVarsChange: (items: KVItem[]) => void;
   onLabelsChange: (items: KVItem[]) => void;
 }
-
-const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Typography
-    variant="caption"
-    sx={{
-      display: 'block',
-      mb: 0.75,
-      fontWeight: 600,
-      color: 'text.disabled',
-      letterSpacing: '0.08em',
-      textTransform: 'uppercase',
-    }}
-  >
-    {children}
-  </Typography>
-);
 
 /**
  * Collapsible panel for optional Docker image runtime configuration.

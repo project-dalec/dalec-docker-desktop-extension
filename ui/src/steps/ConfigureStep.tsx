@@ -11,6 +11,7 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { TargetSelect } from '../components/TargetSelect';
 import { PackageManager } from '../components/PackageManager';
 import { ImageConfig } from '../components/ImageConfig';
+import { FieldLabel } from '../components/FieldLabel';
 import type { ImageSpec, Target, PackagesMap, KVItem } from '../types';
 
 interface ConfigureStepProps {
@@ -52,22 +53,6 @@ const SectionBox: React.FC<{ title: string; children: React.ReactNode; overflow?
     </Box>
     <Box sx={{ p: 2.25 }}>{children}</Box>
   </Box>
-);
-
-const FieldLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Typography
-    variant="caption"
-    sx={{
-      display: 'block',
-      mb: 0.75,
-      fontWeight: 600,
-      color: 'text.disabled',
-      letterSpacing: '0.08em',
-      textTransform: 'uppercase',
-    }}
-  >
-    {children}
-  </Typography>
 );
 
 export const ConfigureStep: React.FC<ConfigureStepProps> = ({
