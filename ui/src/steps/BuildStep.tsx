@@ -29,6 +29,9 @@ export const BuildStep: React.FC<BuildStepProps> = ({
 }) => {
   // Parse the highest BuildKit step number from log lines (e.g. "#18 ...")
   // and map it to an approximate progress percentage.
+  // NOTE: These thresholds are empirical, based on a typical dalec build which
+  // produces ~19 BuildKit steps. Different image configurations may produce
+  // more or fewer steps, so this is a rough heuristic, not an exact measure.
   const progressPct = (() => {
     if (buildDone) return 100;
     if (!building || logLines.length === 0) return 0;
