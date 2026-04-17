@@ -20,21 +20,22 @@ const LABEL_MAP: Record<string, string> = {
   windowscross: 'Windows (cross)',
 };
 
+function inferFamily(id: string, allNames: Set<string>): OsFamily {
+  if (id === 'windowscross') return 'windows';
+  if (allNames.has(`${id}/deb`)) return 'deb';
+  if (allNames.has(`${id}/rpm`)) return 'rpm';
+  return 'deb';
+}
+
+function groupForFamily(family: OsFamily): string {
+  if (family === 'windows') return 'Windows';
+  if (family === 'rpm') return 'RPM-based';
+  return 'Debian / Ubuntu';
+}
+
 function buildOsTarget(id: string, allTargetNames: Set<string>): OsTarget {
-  const hasDeb = allTargetNames.has(`${id}/deb`);
-  const hasRpm = allTargetNames.has(`${id}/rpm`);
-  const family: OsFamily =
-    id === 'windowscross'
-      ? 'windows'
-      : hasDeb
-        ? 'deb'
-        : hasRpm
-          ? 'rpm'
-          : 'deb';
-  const group = family === 'windows' ? 'Windows'
-    : family === 'rpm' ? 'RPM-based'
-    : 'Debian / Ubuntu';
-  return { id, label: LABEL_MAP[id] ?? id, family, group };
+  const family = inferFamily(id, allTargetNames);
+  return { id, label: LABEL_MAP[id] ?? id, family, group: groupForFamily(family) };
 }
 
 const FALLBACK_OS_TARGETS: OsTarget[] = [
