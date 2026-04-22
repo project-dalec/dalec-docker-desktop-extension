@@ -1,6 +1,6 @@
 /* Minimal custom styles - MUI handles most styling via theme */
 
-/* Keep logo styling that's not part of MUI */
-.logo {
-  height: 48px;
+/* Reserve scrollbar gutter so content width never shifts when a scrollbar appears */
+html {
+  scrollbar-gutter: stable;
 }
