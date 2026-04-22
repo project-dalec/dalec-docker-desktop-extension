@@ -54,6 +54,7 @@ export interface BuildResult {
   osTarget: string;
   packages: string[];
   digest?: string;
+  finishedAt: number;
 }
 
 export interface BuildStatusResponse {

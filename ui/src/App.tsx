@@ -118,10 +118,11 @@ export default function App() {
             if (result.status === 'completed' && result.imageName) {
               setBuildDone(true);
               setBuildResult({
-                imageName: result.imageName,
-                osTarget:  result.osTarget ?? spec.target?.id ?? '',
-                packages:  result.packages ?? allPackages,
-                digest:    result.digest,
+                imageName:  result.imageName,
+                osTarget:   result.osTarget ?? spec.target?.id ?? '',
+                packages:   result.packages ?? allPackages,
+                digest:     result.digest,
+                finishedAt: Date.now(),
               });
             } else {
               setLogLines((prev) => [
