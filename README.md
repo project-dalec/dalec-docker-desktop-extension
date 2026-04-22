@@ -1,145 +1,160 @@
-# Dalec Docker Extension
+# Dalec Docker Desktop Extension
 
-A Docker Desktop extension for building minimal container images using [Dalec](https://github.com/Azure/dalec) BuildKit frontend.
+A Docker Desktop extension that builds minimal container images using the [Dalec](https://github.com/project-dalec/dalec) BuildKit frontend. Pick an OS target, select the packages you need, preview the generated Dalec spec, and build — all from a single tab inside Docker Desktop.
 
 > [!WARNING]
-> **Early Development**: This extension is not production ready yet and may change significantly.
+> **Alpha** — interfaces and behavior may change between versions. Not yet published to the Docker Marketplace; install from source.
 
-## 🚀 Features
+---
 
-- **Minimal Image Builder**: Create optimized container images with only the packages you need
-- **Real-time Build Logs**: Watch Docker/Dalec build output stream live
-- **Quick Actions**: Run, inspect, or copy built images with one click
-- **Enhanced Log Viewer**: Color-coded logs with auto-scroll and formatting
-- **Success Feedback**: Visual confirmation with image details when builds complete
-- **Multiple OS Targets**: Support for AzLinux3 and other Dalec-supported distributions
+## What it does
 
-This extension is composed of:
+- Select a Dalec build target (Azure Linux, Mariner, AlmaLinux, Rocky, Debian, Ubuntu, Fedora, openSUSE, Windows cross)
+- Pick packages across four dependency scopes (`runtime`, `build`, `recommends`, `test`) with optional version constraints
+- Configure image metadata (name, version, description, license, entrypoint, cmd, workdir, user, env vars, labels)
+- Preview the generated Dalec YAML spec and the exact `docker build` command
+- Run the build and stream logs back into the UI
+- Copy the image name, digest, or the generated spec with one click
 
-- A [frontend](./ui) app in React with an intuitive UI for configuring and building images
-- A [backend](./backend) service in Node.js that manages builds and Docker operations
+---
 
-> You can build your Docker Extension using your fav tech stack:
->
-> - Frontend: React, Angular, Vue, Svelte, etc.
->   Basically, any frontend framework you can bundle in an `index.html` file with CSS, and JS assets.
-> - Backend (optional): anything that can run in a container.
+## Prerequisites
 
-<details>
-  <summary>Looking for more templates?</summary>
+- Docker Desktop 4.8+ with the extensions framework enabled
+- BuildKit (bundled with recent Docker Desktop releases — no extra setup)
+- On first build, Docker will pull the Dalec frontend image from `ghcr.io/project-dalec/dalec/frontend:latest`
 
-1. [React + NodeJS](https://github.com/benja-M-1/node-backend-extension).
-2. [React + .NET 6 WebAPI](https://github.com/felipecruz91/dotnet-api-docker-extension).
+---
 
-Request one or submit yours [here](https://github.com/docker/extensions-sdk/issues).
+## Install
 
-</details>
+Until the extension is published to the Marketplace, install from source:
 
-## Local development
-
-You can use `docker` to build, install and push your extension. Also, we provide an opinionated [Makefile](Makefile) that could be convenient for you. There isn't a strong preference of using one over the other, so just use the one you're most comfortable with.
-
-To build the extension, use `make build-extension` **or**:
-
-```shell
-> docker --context desktop-linux build -t dalec-extension:local .
-docker build -t dalec-extension:latest .
+```bash
+git clone https://github.com/project-dalec/dalec-docker-desktop-extension
+cd dalec-docker-desktop-extension
+make install-extension
 ```
 
-```shell
-  docker buildx build -t dalec-extension:latest . --load
+This builds `dalec/dalec-docker-extension:latest` and installs it into Docker Desktop. Open Docker Desktop — a **Dalec** tab appears in the left sidebar.
+
+To update after pulling changes:
+
+```bash
+make update-extension
 ```
 
-To install the extension, use `make install-extension` **or**:
+To remove:
 
-```shell
-  > docker extension install dalec-extension:latest
-  docker extension install dalec-extension:latest
+```bash
+docker extension rm dalec/dalec-docker-extension:latest
 ```
 
-> If you want to automate this command, use the `-f` or `--force` flag to accept the warning message.
+---
 
-To preview the extension in Docker Desktop, open Docker Dashboard once the installation is complete. The left-hand menu displays a new tab with the name of your extension. You can also use `docker extension ls` to see that the extension has been installed successfully.
+## Usage
 
-### Frontend development
+The UI is a three-step flow.
 
-During the development of the frontend part, it's helpful to use hot reloading to test your changes without rebuilding your entire extension. To do this, you can configure Docker Desktop to load your UI from a development server.
-Assuming your app runs on the default port, start your UI app and then run:
+### 1. Configure
 
-```shell
-  cd ui
-  npm install
-  npm run dev
+Choose an OS target, add packages to the relevant dependency scopes (`runtime` / `build` / `recommends` / `test`), and fill in image metadata (name, version, license, entrypoint, cmd, and so on). Fields show example placeholders where defaults are ambiguous.
+
+![Configure step](./docs/screenshots/configure-step.png)
+
+### 2. Preview
+
+Review the generated Dalec YAML and the `docker build` command that will be run. Editing is not in-place; go back to step 1 to change anything.
+
+![Preview step](./docs/screenshots/preview-step.png)
+
+### 3. Build
+
+Logs stream live while the build runs.
+
+![Build in progress](./docs/screenshots/build-in-progress.png)
+
+On success, the Image Details card shows the image name, digest, target, and package count, with copy buttons and a "New build" shortcut.
+
+![Build complete](./docs/screenshots/build-complete.png)
+
+After a successful build the image exists in your local Docker daemon — use it with `docker run`, `docker inspect`, or push it to a registry like any other image.
+
+---
+
+## Supported OS targets
+
+Targets are fetched dynamically from the Dalec frontend at runtime. If that call fails, the UI falls back to this list:
+
+| Family | Targets |
+|---|---|
+| RPM | Azure Linux 3, CBL-Mariner 2, AlmaLinux 8/9, Rocky Linux 8/9, Fedora 40, openSUSE Leap 15.5 |
+| Debian/Ubuntu | Debian Bullseye/Bookworm/Trixie, Ubuntu Bionic/Focal/Jammy/Noble |
+| Windows | `windowscross` |
+
+---
+
+## Development
+
+### Repo layout
+
+```
+backend/   Express + TypeScript service that runs inside the extension VM and shells out to docker
+ui/        React + MUI frontend served by Docker Desktop
+docs/      ARCHITECTURE, TESTING, DEBUGGING
+Dockerfile Multi-stage build for the extension image
+Makefile   Build / install / update / push / test targets
 ```
 
-This starts a development server that listens on port `3000`.
+### Rebuild after changes
 
-You can now tell Docker Desktop to use this as the frontend source. In another terminal run:
+The UI talks to the backend through `ddClient` from `@docker/extension-api-client`, which is only injected inside Docker Desktop's extension iframe. That means a standalone Vite dev server won't work — any change (frontend or backend) requires rebuilding and reinstalling the extension:
 
-```shell
-  docker extension dev ui-source my/awesome-extension:latest http://localhost:3000
+```bash
+make update-extension
 ```
 
-In order to open the Chrome Dev Tools for your extension when you click on the extension tab, run:
+To open Chrome DevTools for the extension panel:
 
-```shell
-  docker extension dev debug my/awesome-extension:latest
+```bash
+docker extension dev debug dalec/dalec-docker-extension:latest
 ```
 
-Each subsequent click on the extension tab will also open Chrome Dev Tools. To stop this behaviour, run:
+To stop auto-opening DevTools:
 
-```shell
-  docker extension dev reset my/awesome-extension:latest
+```bash
+docker extension dev reset dalec/dalec-docker-extension:latest
 ```
 
-### Backend development (optional)
+### Tests
 
-This example defines an API in Go that is deployed as a backend container when the extension is installed. This backend could be implemented in any language, as it runs inside a container. The extension frameworks provides connectivity from the extension UI to a socket that the backend has to connect to on the server side.
-
-Note that an extension doesn't necessarily need a backend container, but in this example we include one for teaching purposes.
-
-Whenever you make changes in the [backend](./backend) source code, you will need to compile them and re-deploy a new version of your backend container.
-Use the `docker extension update` command to remove and re-install the extension automatically:
-
-```shell
-docker extension update my/awesome-extension:latest
+```bash
+make test            # runs backend + UI unit tests
 ```
 
-> If you want to automate this command, use the `-f` or `--force` flag to accept the warning message.
+Type-checking separately:
 
-> Extension containers are hidden from the Docker Dashboard by default. You can change this in Settings > Extensions > Show Docker Extensions system containers.
-
-### Clean up
-
-To remove the extension:
-
-```shell
-docker extension rm my/awesome-extension:latest
+```bash
+cd ui && npm run typecheck
+cd backend && npx tsc --noEmit
 ```
 
-## 📚 Documentation
+---
 
-- **[ENHANCEMENTS.md](./ENHANCEMENTS.md)**: Detailed list of features and technical changes
-- **[TESTING.md](./TESTING.md)**: Test scenarios and verification steps
+## Architecture
 
-## 🎯 Usage
+High level: the UI talks to the backend over the extension framework's `ddClient` (no host network exposure); the backend validates the payload, writes the generated spec into a temp directory, and spawns `docker build` with `DOCKER_BUILDKIT=1`. Logs are buffered per build and pulled by the UI via HTTP polling against `/api/build/:id/status`. Build records expire 10 minutes after completion.
 
-1. **Select OS Target**: Choose your base operating system (e.g., azlinux3)
-2. **Pick Packages**: Toggle packages to include (curl, bash, etc.)
-3. **Name Your Image**: Set image name and tag
-4. **Create Image**: Click to start the build
-5. **Watch Progress**: Real-time logs show build stages
-6. **Use Quick Actions**: Run, inspect, or copy the built image
+For a deeper walkthrough see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md). For debugging tips see [docs/DEBUGGING.md](./docs/DEBUGGING.md).
 
-## 🔧 Architecture
+---
 
-The extension uses:
-- **Dalec BuildKit Frontend**: Creates minimal images with precise dependencies
-- **Server-Sent Events (SSE)**: Streams build logs to the UI in real-time
-- **Docker API**: Manages image operations (build, run, inspect)
+## Related
 
-## What's next?
+- [Dalec](https://github.com/project-dalec/dalec) — the BuildKit frontend this extension drives
+- [Docker Extensions SDK](https://docs.docker.com/desktop/extensions-sdk/)
+- [BuildKit](https://github.com/moby/buildkit)
 
-- To learn more about Dalec visit https://github.com/Azure/dalec
-- To learn more about Docker Extensions refer to https://docs.docker.com/desktop/extensions-sdk/
-- To publish your extension in the Marketplace visit https://www.docker.com/products/extensions/submissions/
+## License
+
+[Apache 2.0](./LICENSE)
