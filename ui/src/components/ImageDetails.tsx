@@ -100,9 +100,11 @@ export const ImageDetails: React.FC<ImageDetailsProps> = ({
         <Typography variant="caption" fontWeight={600} color="text.secondary">
           Image Details
         </Typography>
-        <Typography variant="caption" color="text.disabled">
-          just now
-        </Typography>
+        <Tooltip title={new Date(result.finishedAt).toLocaleString()} placement="top">
+          <Typography variant="caption" color="text.disabled">
+            now
+          </Typography>
+        </Tooltip>
       </Box>
 
       {/* Fields grid */}

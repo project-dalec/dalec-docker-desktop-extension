@@ -1,155 +1,131 @@
-# Testing the Enhanced DALEC Extension
+# Manual Testing
 
-## 🧪 How to Test the New Features
+This doc is the full manual test pass — install verification, smoke tests, and scenario-driven checks. Automated tests are run via `make test`; this covers behavior that only makes sense through the UI.
 
-### Prerequisites
-1. Docker Desktop installed with extensions enabled
-2. Dalec BuildKit frontend available (automatically pulled on first build)
-3. Extension installed: `docker extension install <your-extension-name>`
+## Prerequisites
 
-### Test Scenario 1: Basic Build with Success Banner
-```bash
-# In the extension UI:
-1. Image Name: test-minimal:v1
-2. OS Target: azlinux3
-3. Packages: Select "curl" and "bash"
-4. Click "Create Image"
+- [ ] Docker Desktop is installed and running
+- [ ] Extensions are enabled (Docker Desktop → Settings → Extensions)
+- [ ] BuildKit is active (default in modern Docker Desktop)
+- [ ] Terminal access for verification commands
 
-# Expected Results:
-✅ Real-time logs appear showing Docker BuildKit output
-✅ Logs show Dalec stages being executed
-✅ Green success banner appears when complete
-✅ Image name "test-minimal:v1" is displayed
-✅ OS target and packages listed
-
-# Verify in terminal:
-docker images | grep test-minimal
-# Should show: test-minimal  v1  ...
-```
-
-### Test Scenario 2: Quick Actions
-```bash
-# After successful build from Scenario 1:
-
-# Test "Inspect" button:
-1. Click "🔍 Inspect"
-2. Alert should show:
-   - Image name
-   - Size in MB
-   - Creation timestamp
-   - Architecture
-
-# Test "Copy Image Name" button:
-1. Click "📋 Copy Image Name"
-2. Paste in terminal: Ctrl+V (should be "test-minimal:v1")
-
-# Test "Run Image" button:
-1. Click "🚀 Run Image"
-2. Alert shows container ID
-3. Verify: docker ps -a | grep test-minimal
-```
-
-### Test Scenario 3: Log Viewer Features
-```bash
-# During a build:
-
-# Test Auto-scroll:
-1. Start a build
-2. Observe logs scroll automatically
-3. Scroll up manually
-4. Notice "Auto-scroll" checkbox unchecks
-5. New logs arrive but don't auto-scroll
-6. Re-check "Auto-scroll" - jumps to bottom
-
-# Test Clear Logs:
-1. After build completes
-2. Click "Clear Logs"
-3. Log viewer empties
-
-# Test Log Highlighting:
-- Look for green text (success/DONE messages)
-- Look for red text (error keywords)
-- Look for yellow text (warning keywords)
-- Look for blue text (BuildKit stages)
-```
-
-### Test Scenario 4: Error Handling
-```bash
-# Force a build failure:
-
-# In the extension UI:
-1. Image Name: bad-image:fail (use invalid characters if needed)
-2. Or disconnect Docker daemon temporarily
-3. Click "Create Image"
-
-# Expected Results:
-❌ Red error banner appears
-❌ Status shows "failed"
-❌ Logs show error details
-❌ No quick action buttons appear
-```
-
-### Test Scenario 5: Multiple Packages
-```bash
-# Test with just bash:
-1. Image Name: bash-only:v1
-2. Packages: Only "bash" selected
-3. Build and verify size
-
-# Test with curl + bash:
-1. Image Name: curl-bash:v1
-2. Packages: Both selected
-3. Build and compare size (should be larger)
-
-# Compare in terminal:
-docker images | grep -E "(bash-only|curl-bash)"
-```
-
-## 🐛 Known Issues to Watch For
-- First build may take longer (pulling Dalec frontend)
-- Very long logs may cause performance issues (future: pagination)
-- Docker daemon must be running
-
-## 📊 Success Criteria
-✅ All logs from `docker build` appear in real-time
-✅ Success banner shows accurate image information
-✅ Quick actions work without errors
-✅ Log viewer auto-scroll and formatting work
-✅ Error states display correctly
-✅ Built images are usable (`docker run` works)
-
-## 🎯 Manual Verification Commands
-
-After building `test-minimal:v1`:
+## 1. Install
 
 ```bash
-# 1. Verify image exists
-docker images test-minimal:v1
-
-# 2. Check image history
-docker history test-minimal:v1
-
-# 3. Run the image interactively
-docker run -it test-minimal:v1 /bin/bash
-
-# Inside container:
-which curl  # Should show path if curl was included
-which bash  # Should show /bin/bash
-exit
-
-# 4. Inspect image (compare with UI)
-docker image inspect test-minimal:v1 | jq '.[0] | {Size, Created, Os, Architecture}'
-
-# 5. Clean up
-docker rmi test-minimal:v1
+make install-extension
 ```
 
-## 📱 UI/UX Checklist
-- [ ] Logs are readable (not too small)
-- [ ] Success banner is visually distinct (green)
-- [ ] Error banner is visually distinct (red)
-- [ ] Buttons have hover effects
-- [ ] Auto-scroll checkbox is intuitive
-- [ ] Line numbers help with debugging
-- [ ] Color-coding makes errors stand out
-- [ ] Action buttons are clearly labeled with emojis
+or
+
+```bash
+docker buildx build -t dalec/dalec-docker-extension:latest . --load
+docker extension install dalec/dalec-docker-extension:latest -f
+```
+
+- [ ] Build completes without errors
+- [ ] `docker extension ls` shows `dalec/dalec-docker-extension:latest`
+- [ ] A **Dalec** tab appears in the Docker Desktop left sidebar
+
+## 2. Smoke test
+
+- [ ] Open Docker Desktop and click the Dalec tab
+- [ ] The Configure step renders with no error toast
+- [ ] OS target dropdown populates (dynamic list from Dalec frontend, or fallback list)
+- [ ] The runtime dependency scope already contains `curl` and `bash` (from `INITIAL_SPEC`)
+- [ ] No errors in Chrome DevTools console (`docker extension dev debug dalec/dalec-docker-extension:latest`)
+
+## 3. Basic build
+
+Fill in:
+
+- Name: `test-dalec`
+- Version: `0.1.0`
+- Description, License, Website: anything (these are required fields)
+- OS target: `azlinux3` (or any RPM/deb target)
+- Runtime packages: keep `curl`, `bash`
+- Entrypoint: leave blank (placeholder shows `/usr/bin/curl`)
+
+Click **Next → Preview → Build**.
+
+- [ ] YAML preview shows a valid Dalec spec with `#syntax=` on the first line
+- [ ] Build command preview shows `docker build -t test-dalec:0.1.0 --target=<osTarget>/container ...`
+- [ ] Logs stream in real-time (polling cadence ~2s)
+- [ ] On success, the Image Details card shows the image name, digest, OS target, package count, entrypoint, cmd, and a "now" timestamp (hover for full time)
+- [ ] Copy buttons for image name and digest work
+- [ ] "New build" button resets back to step 1
+
+Verify the image:
+
+```bash
+docker images test-dalec:0.1.0
+docker inspect test-dalec:0.1.0
+docker run --rm test-dalec:0.1.0   # exits with curl's default message
+```
+
+## 4. Input validation
+
+The backend rejects builds with invalid input.
+
+- [ ] Image name with a space → "Invalid imageName format" (backend validator rejects)
+- [ ] Tampered `osTarget` with a semicolon → 400
+- [ ] YAML spec missing `#syntax=` on the first line → 400
+
+Backend validator tests cover these cases in `backend/src/validators.test.ts`; these manual steps confirm the UI surfaces the error.
+
+## 5. Package management
+
+- [ ] Adding a package from the search autocomplete appears in the selected list
+- [ ] Adding a version constraint (e.g. `>= 1.0`) shows up in the YAML preview
+- [ ] Removing a package removes it from the preview
+- [ ] Switching across the four dependency scopes (runtime / build / recommends / test) keeps each list independent
+- [ ] The RPM vs deb label for packages (shown in the manager) matches the selected target family
+
+## 6. Log viewer
+
+- [ ] Auto-scroll works while the build runs
+- [ ] Scrolling up disables auto-scroll, scrolling to the bottom re-enables it (check the actual behavior in [BuildLog.tsx](../ui/src/components/BuildLog.tsx))
+- [ ] "Clear logs" empties the viewer without affecting the underlying build state
+- [ ] Color coding: errors red, warnings yellow, stages blue (approximate — categorization is regex-based in `yamlGenerator.ts` / `BuildLog.tsx`)
+
+## 7. Error handling
+
+Force failures and confirm the UI stays usable:
+
+- [ ] Stop Docker daemon mid-build → build shows "failed", logs include the exit code, Image Details does not render
+- [ ] Request a non-existent package (e.g. `definitely-not-real-xyz`) → build fails with a package manager error inside the logs
+- [ ] After a failed build, starting a new one works without refreshing
+
+## 8. Performance
+
+Rough expectations, not strict thresholds:
+
+- [ ] First build on a machine: 2–5 min (pulls the Dalec frontend image)
+- [ ] Subsequent builds of the same OS target: ~30–90s with cache
+- [ ] UI remains responsive during streaming logs (no long tasks locking the main thread)
+
+## 9. Docs sanity
+
+- [ ] `README.md` commands work copy-paste
+- [ ] `docs/ARCHITECTURE.md` API table matches [server.ts](../backend/src/server.ts)
+- [ ] `docs/DEBUGGING.md` steps match current socket path and endpoints
+
+## 10. Uninstall
+
+```bash
+docker extension rm dalec/dalec-docker-extension:latest
+```
+
+- [ ] Extension disappears from the sidebar
+- [ ] `docker extension ls` no longer lists it
+
+## Collecting debug info on failure
+
+If any test fails, capture:
+
+```bash
+docker extension ls
+docker ps -a --filter "label=com.docker.compose.project"
+docker logs <backend-container-id> --tail 200
+```
+
+See [DEBUGGING.md](./DEBUGGING.md) for per-symptom diagnosis.
