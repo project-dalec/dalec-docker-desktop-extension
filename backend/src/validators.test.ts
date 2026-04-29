@@ -110,10 +110,6 @@ describe('isValidOsTarget', () => {
       expect(isValidOsTarget('bullseye/deb')).toBe(true);
     });
 
-    it('accepts windows cross-compile target', () => {
-      expect(isValidOsTarget('windowscross/container')).toBe(true);
-    });
-
     it('accepts targets with dots and hyphens in segments', () => {
       expect(isValidOsTarget('my-os.v2/container')).toBe(true);
     });

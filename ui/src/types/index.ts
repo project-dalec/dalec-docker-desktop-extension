@@ -1,4 +1,4 @@
-export type Family = 'deb' | 'rpm' | 'windows';
+export type Family = 'deb' | 'rpm';
 
 export interface Target {
   id: string;

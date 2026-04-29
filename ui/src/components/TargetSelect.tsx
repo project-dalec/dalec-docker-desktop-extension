@@ -19,7 +19,6 @@ interface TargetSelectProps {
 const GROUP_ORDER: Record<string, number> = {
   'Debian / Ubuntu': 0,
   'RPM-based':       1,
-  'Windows':         2,
 };
 
 export const TargetSelect: React.FC<TargetSelectProps> = ({ value, options, loading, onChange }) => {

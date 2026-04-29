@@ -2,15 +2,13 @@ import type { Target, DepTypeMeta, PackagesMap } from '../types';
 
 /** Returns the exact --target value to pass to docker build for a given target. */
 export function getBuildTarget(target: Target): string {
-  if (target.family === 'windows') return `${target.id}/container`;
-  if (target.family === 'rpm')     return `${target.id}/container`;
+  if (target.family === 'rpm') return `${target.id}/container`;
   return `${target.id}/testing/container`; // deb
 }
 
 export const PRESET_PACKAGES: Record<string, string[]> = {
-  deb:     ['curl', 'bash', 'jq', 'ca-certificates', 'wget', 'git', 'python3', 'nodejs', 'openssl', 'net-tools', 'vim', 'htop', 'strace', 'tcpdump', 'iputils-ping', 'make', 'gcc', 'libssl-dev'],
-  rpm:     ['curl', 'bash', 'jq', 'ca-certificates', 'wget', 'git', 'python3', 'nodejs', 'openssl', 'net-tools', 'vim', 'htop', 'strace', 'tcpdump', 'iputils', 'make', 'gcc', 'openssl-devel'],
-  windows: [],
+  deb: ['curl', 'bash', 'jq', 'ca-certificates', 'wget', 'git', 'python3', 'nodejs', 'openssl', 'net-tools', 'vim', 'htop', 'strace', 'tcpdump', 'iputils-ping', 'make', 'gcc', 'libssl-dev'],
+  rpm: ['curl', 'bash', 'jq', 'ca-certificates', 'wget', 'git', 'python3', 'nodejs', 'openssl', 'net-tools', 'vim', 'htop', 'strace', 'tcpdump', 'iputils', 'make', 'gcc', 'openssl-devel'],
 };
 
 export const DEP_TYPES: DepTypeMeta[] = [

@@ -50,6 +50,7 @@ class BuildManager {
     const tmpDir  = `/tmp/dalec-build-${id}`;
 
     fs.mkdirSync(tmpDir, { recursive: true });
+    // BuildKit reads the default Dockerfile; the `#syntax=` line inside yamlSpec redirects it to the Dalec frontend, which interprets the rest as a YAML spec.
     fs.writeFileSync(path.join(tmpDir, 'Dockerfile'), yamlSpec);
 
     const args = ['build', '-t', imageName, `--target=${osTarget}`, tmpDir];
