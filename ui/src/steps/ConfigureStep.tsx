@@ -12,7 +12,7 @@ import { TargetSelect } from '../components/TargetSelect';
 import { PackageManager } from '../components/PackageManager';
 import { ImageConfig } from '../components/ImageConfig';
 import { FieldLabel } from '../components/FieldLabel';
-import type { ImageSpec, Target, PackagesMap, KVItem } from '../types';
+import type { ImageSpec, Target, Package, KVItem } from '../types';
 
 interface ConfigureStepProps {
   spec: ImageSpec;
@@ -65,8 +65,7 @@ export const ConfigureStep: React.FC<ConfigureStepProps> = ({
   onSkipToBuild,
 }) => {
   const family = spec.target?.family ?? 'deb';
-  const totalPkgs = Object.values(spec.packages).flat().length;
-  const isValid = !!(spec.name && spec.version && spec.description && spec.website && spec.license && totalPkgs > 0);
+  const isValid = !!(spec.name && spec.version && spec.description && spec.website && spec.license && spec.packages.length > 0);
 
   return (
     <Box display="flex" flexDirection="column" gap={2.5}>
@@ -146,14 +145,17 @@ export const ConfigureStep: React.FC<ConfigureStepProps> = ({
         />
       </SectionBox>
 
-      {/* Dependencies */}
-      <SectionBox title="Dependencies">
+      {/* Runtime dependencies */}
+      <SectionBox title="Runtime Dependencies">
         <Box sx={{ opacity: targetsLoading ? 0.4 : 1, pointerEvents: targetsLoading ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
+          <Typography variant="caption" color="text.disabled" display="block" mb={1.5}>
+            Packages required to run the image.
+          </Typography>
           <PackageManager
             packages={spec.packages}
             availablePackages={availablePackages}
             family={family}
-            onChange={(updated: PackagesMap) => onSpecChange({ packages: updated })}
+            onChange={(updated: Package[]) => onSpecChange({ packages: updated })}
           />
         </Box>
       </SectionBox>

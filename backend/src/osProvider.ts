@@ -17,20 +17,16 @@ const LABEL_MAP: Record<string, string> = {
   rockylinux9:  'Rocky Linux 9',
   fedora40:     'Fedora 40',
   opensuse:     'openSUSE Leap 15.5',
-  windowscross: 'Windows (cross)',
 };
 
 function inferFamily(id: string, allNames: Set<string>): OsFamily {
-  if (id === 'windowscross') return 'windows';
   if (allNames.has(`${id}/deb`)) return 'deb';
   if (allNames.has(`${id}/rpm`)) return 'rpm';
   return 'deb';
 }
 
 function groupForFamily(family: OsFamily): string {
-  if (family === 'windows') return 'Windows';
-  if (family === 'rpm') return 'RPM-based';
-  return 'Debian / Ubuntu';
+  return family === 'rpm' ? 'RPM-based' : 'Debian / Ubuntu';
 }
 
 function buildOsTarget(id: string, allTargetNames: Set<string>): OsTarget {
@@ -38,6 +34,8 @@ function buildOsTarget(id: string, allTargetNames: Set<string>): OsTarget {
   return { id, label: LABEL_MAP[id] ?? id, family, group: groupForFamily(family) };
 }
 
+// Windows targets are intentionally excluded — this extension builds container images,
+// and the windowscross target is for cross-compiling Windows packages, not containers.
 const FALLBACK_OS_TARGETS: OsTarget[] = [
   { id: 'mariner2',     label: 'CBL-Mariner 2',      family: 'rpm', group: 'RPM-based' },
   { id: 'azlinux3',     label: 'Azure Linux 3',       family: 'rpm', group: 'RPM-based' },
@@ -52,7 +50,6 @@ const FALLBACK_OS_TARGETS: OsTarget[] = [
   { id: 'focal',        label: 'Ubuntu Focal 20.04',  family: 'deb', group: 'Debian / Ubuntu' },
   { id: 'jammy',        label: 'Ubuntu Jammy 22.04',  family: 'deb', group: 'Debian / Ubuntu' },
   { id: 'noble',        label: 'Ubuntu Noble 24.04',  family: 'deb', group: 'Debian / Ubuntu' },
-  { id: 'windowscross', label: 'Windows (cross)',     family: 'windows', group: 'Windows' },
 ];
 
 interface BuildxTarget {
@@ -88,6 +85,7 @@ export function fetchOsList(): Promise<OsTarget[]> {
           const targets  = result.targets
             .filter((t) => t.default === true)
             .map((t) => t.name.split('/')[0])
+            .filter((id) => id !== 'windowscross')
             .filter((id) => { if (seen.has(id)) return false; seen.add(id); return true; })
             .map((id) => buildOsTarget(id, allNames));
 

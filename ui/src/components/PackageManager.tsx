@@ -1,8 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Box,
-  Tabs,
-  Tab,
   TextField,
   Button,
   Typography,
@@ -16,26 +14,23 @@ import { alpha } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import { PackageRow } from './PackageRow';
-import type { Package, PackagesMap, DepType } from '../types';
-import { DEP_TYPES, PRESET_PACKAGES } from '../constants/targets';
+import type { Package, Family } from '../types';
+import { PRESET_PACKAGES } from '../constants/targets';
 
 interface PackageManagerProps {
-  packages: PackagesMap;
+  packages: Package[];
   availablePackages: string[];
-  family: string;
-  onChange: (updated: PackagesMap) => void;
+  family: Family;
+  onChange: (updated: Package[]) => void;
 }
 
 /**
- * Tabbed package editor for all four Dalec dependency types.
+ * Editor for the runtime dependency list.
  *
- * Tabs: **Runtime**, **Build**, **Recommends**, and **Test** — each showing
- * a badge with the package count for that type.  Within the active tab:
  * - A search field provides typeahead suggestions drawn from the
  *   `availablePackages` list (fetched from the backend) merged with family-
  *   specific presets. Arrow-key navigation and Enter/Escape are supported.
- * - Packages already in any tab are excluded from suggestions to avoid
- *   duplicates across dependency types.
+ * - Packages already added are excluded from suggestions to avoid duplicates.
  * - Each added package is rendered as a `PackageRow` that allows version
  *   constraints to be attached and the package to be removed.
  */
@@ -45,15 +40,13 @@ export const PackageManager: React.FC<PackageManagerProps> = ({
   family,
   onChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<DepType>('runtime');
   const [input, setInput] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [highlightedIdx, setHighlightedIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const highlightedRef = useRef<any>(null);
+  const highlightedRef = useRef<HTMLDivElement | null>(null);
 
-  const allNames = Object.values(packages).flat().map((p) => p.name);
+  const allNames = useMemo(() => packages.map((p) => p.name), [packages]);
 
   useEffect(() => {
     if (!input) { setSuggestions([]); return; }
@@ -65,8 +58,7 @@ export const PackageManager: React.FC<PackageManagerProps> = ({
         .slice(0, 8),
     );
     setHighlightedIdx(0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [input, family, allNames.join(',')]);
+  }, [input, family, allNames, availablePackages]);
 
   useEffect(() => {
     highlightedRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -75,21 +67,18 @@ export const PackageManager: React.FC<PackageManagerProps> = ({
   const addPackage = (name?: string) => {
     const trimmed = (name ?? input).trim();
     if (!trimmed || allNames.includes(trimmed)) { setInput(''); setSuggestions([]); return; }
-    onChange({
-      ...packages,
-      [activeTab]: [...(packages[activeTab] ?? []), { name: trimmed, versions: [] }],
-    });
+    onChange([...packages, { name: trimmed, versions: [] }]);
     setInput(''); setSuggestions([]);
   };
 
-  const updatePackage = (depType: DepType, idx: number, updated: Package) => {
-    const list = [...(packages[depType] ?? [])];
+  const updatePackage = (idx: number, updated: Package) => {
+    const list = [...packages];
     list[idx] = updated;
-    onChange({ ...packages, [depType]: list });
+    onChange(list);
   };
 
-  const removePackage = (depType: DepType, idx: number) => {
-    onChange({ ...packages, [depType]: (packages[depType] ?? []).filter((_, i) => i !== idx) });
+  const removePackage = (idx: number) => {
+    onChange(packages.filter((_, i) => i !== idx));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -103,76 +92,8 @@ export const PackageManager: React.FC<PackageManagerProps> = ({
     else if (e.key === 'Escape') { setSuggestions([]); setInput(''); }
   };
 
-  const activePkgs = packages[activeTab] ?? [];
-  const activeDepMeta = DEP_TYPES.find((d) => d.id === activeTab);
-
   return (
     <Box>
-      {/* Tabs */}
-      <Box sx={{ borderBottom: (theme) => `1px solid ${alpha(theme.palette.divider, 0.5)}`, mb: 2 }}>
-        <Tabs
-          value={activeTab}
-          onChange={(_, v: DepType) => setActiveTab(v)}
-          sx={{
-            minHeight: 36,
-            '& .MuiTabs-indicator': { backgroundColor: 'primary.main' },
-          }}
-        >
-          {DEP_TYPES.map((dt) => {
-            const count = (packages[dt.id] ?? []).length;
-            return (
-              <Tab
-                key={dt.id}
-                value={dt.id}
-                label={
-                  <Box display="flex" alignItems="center" gap={0.75}>
-                    <span>{dt.label}</span>
-                    {count > 0 && (
-                      <Box
-                        component="span"
-                        sx={{
-                          bgcolor: activeTab === dt.id ? 'action.selected' : 'action.hover',
-                          color: activeTab === dt.id ? 'primary.main' : 'text.disabled',
-                          borderRadius: 99,
-                          px: 0.75,
-                          fontSize: 10,
-                          fontWeight: 700,
-                          lineHeight: 1.6,
-                        }}
-                      >
-                        {count}
-                      </Box>
-                    )}
-                  </Box>
-                }
-                sx={{
-                  minHeight: 36,
-                  py: 0.75,
-                  px: 1.75,
-                  fontSize: 12,
-                  textTransform: 'none',
-                  color: 'text.secondary',
-                  '&.Mui-selected': { color: 'text.primary' },
-                }}
-              />
-            );
-          })}
-
-          <Box sx={{ flex: 1 }} />
-
-          {activeDepMeta && (
-            <Typography
-              variant="caption"
-              color="text.disabled"
-              fontStyle="italic"
-              sx={{ alignSelf: 'center', pr: 1 }}
-            >
-              {activeDepMeta.description}
-            </Typography>
-          )}
-        </Tabs>
-      </Box>
-
       {/* Search input */}
       <Box sx={{ position: 'relative', mb: 1 }}>
         <Box display="flex" gap={1}>
@@ -182,7 +103,7 @@ export const PackageManager: React.FC<PackageManagerProps> = ({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={`Search ${family === 'deb' ? 'apt' : family === 'rpm' ? 'rpm' : 'winget'} packages…`}
+              placeholder={`Search ${family === 'deb' ? 'apt' : 'rpm'} packages…`}
               size="small"
               fullWidth
               slotProps={{
@@ -269,14 +190,14 @@ export const PackageManager: React.FC<PackageManagerProps> = ({
       </Typography>
 
       {/* Package list */}
-      {activePkgs.length > 0 ? (
+      {packages.length > 0 ? (
         <Box display="flex" flexDirection="column" gap={0.75}>
-          {activePkgs.map((pkg, i) => (
+          {packages.map((pkg, i) => (
             <PackageRow
               key={pkg.name}
               pkg={pkg}
-              onUpdate={(u) => updatePackage(activeTab, i, u)}
-              onRemove={() => removePackage(activeTab, i)}
+              onUpdate={(u) => updatePackage(i, u)}
+              onRemove={() => removePackage(i)}
             />
           ))}
         </Box>
@@ -290,7 +211,7 @@ export const PackageManager: React.FC<PackageManagerProps> = ({
           }}
         >
           <Typography variant="body2" color="text.disabled">
-            No {activeTab} packages yet — search above or type a name and press Enter.
+            No packages yet — search above or type a name and press Enter.
           </Typography>
         </Box>
       )}
