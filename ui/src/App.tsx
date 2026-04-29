@@ -6,7 +6,7 @@ import { ConfigureStep } from './steps/ConfigureStep';
 import { PreviewStep } from './steps/PreviewStep';
 import { BuildStep } from './steps/BuildStep';
 import { generateYAML, generateBuildCommand } from './utils/yamlGenerator';
-import { EMPTY_PACKAGES_MAP, getBuildTarget, BUILD_POLL_INTERVAL_MS } from './constants/targets';
+import { getBuildTarget, BUILD_POLL_INTERVAL_MS } from './constants/targets';
 import { getAvailableTargets } from './api/osApi';
 import { getPackages } from './api/packageApi';
 import { startBuild, getBuildStatus } from './api/buildApi';
@@ -20,13 +20,10 @@ const INITIAL_SPEC: ImageSpec = {
   revision:    '1',
   license:     '',
   target:      null,
-  packages: {
-    ...EMPTY_PACKAGES_MAP(),
-    runtime: [
-      { name: 'curl', versions: [] },
-      { name: 'bash', versions: [] },
-    ],
-  },
+  packages: [
+    { name: 'curl', versions: [] },
+    { name: 'bash', versions: [] },
+  ],
   entrypoint: '',
   cmd:        '',
   workdir:    '',
@@ -82,7 +79,7 @@ export default function App() {
     setLogLines([]);
     setBuildResult(null);
 
-    const allPackages = Object.values(spec.packages).flat().map((p) => p.name);
+    const allPackages = spec.packages.map((p) => p.name);
     const yamlSpec = generateYAML(spec);
 
     try {

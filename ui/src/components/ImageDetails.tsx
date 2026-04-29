@@ -52,7 +52,7 @@ export const ImageDetails: React.FC<ImageDetailsProps> = ({
 }) => {
   const [copied, setCopied]             = useState(false);
   const [digestCopied, setDigestCopied] = useState(false);
-  const totalPkgs = Object.values(spec.packages).flat().length;
+  const totalPkgs = spec.packages.length;
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(result.imageName);

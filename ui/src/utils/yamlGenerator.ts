@@ -1,5 +1,5 @@
 import type { ImageSpec } from '../types';
-import { DEP_TYPES, getBuildTarget } from '../constants/targets';
+import { getBuildTarget } from '../constants/targets';
 
 /** Escape a string for safe inclusion as a YAML double-quoted value. */
 function yamlEscape(value: string): string {
@@ -19,24 +19,19 @@ export function generateYAML(spec: ImageSpec): string {
   lines.push(`license: "${yamlEscape(license)}"`);
   lines.push('packager: builtin');
 
-  const hasAnyPkg = DEP_TYPES.some((dt) => (packages[dt.id] ?? []).length > 0);
-  if (hasAnyPkg) {
+  if (packages.length > 0) {
     lines.push('');
     lines.push('dependencies:');
-    DEP_TYPES.forEach(({ id }) => {
-      const pkgs = packages[id] ?? [];
-      if (!pkgs.length) return;
-      lines.push(`  ${id}:`);
-      pkgs.forEach((pkg) => {
-        const activeConstraints = pkg.versions.filter((v) => v.op && v.val);
-        if (!activeConstraints.length) {
-          lines.push(`    ${pkg.name}: {}`);
-        } else {
-          lines.push(`    ${pkg.name}:`);
-          lines.push(`      version:`);
-          activeConstraints.forEach((c) => lines.push(`        - "${c.op}${c.val}"`));
-        }
-      });
+    lines.push('  runtime:');
+    packages.forEach((pkg) => {
+      const activeConstraints = pkg.versions.filter((v) => v.op && v.val);
+      if (!activeConstraints.length) {
+        lines.push(`    ${pkg.name}: {}`);
+      } else {
+        lines.push(`    ${pkg.name}:`);
+        lines.push(`      version:`);
+        activeConstraints.forEach((c) => lines.push(`        - "${c.op}${c.val}"`));
+      }
     });
   }
 
@@ -87,7 +82,7 @@ export type YamlLineCategory =
 export function categorizeYamlLine(line: string): YamlLineCategory {
   if (line.startsWith('#'))                                                  return 'comment';
   if (/^(name|version|revision|description|website|license|packager|dependencies|image):/.test(line)) return 'topKey';
-  if (/^\s+(runtime|build|recommends|test|env|labels|version):/.test(line)) return 'subKey';
+  if (/^\s+(runtime|env|labels|version):/.test(line)) return 'subKey';
   if (line.includes(': {}'))                                                 return 'packageLeaf';
   if (/^\s{4,8}[\w][\w-]+:/.test(line) && !line.includes('{}'))            return 'packageName';
   if (/^\s*- "/.test(line))                                                  return 'constraint';

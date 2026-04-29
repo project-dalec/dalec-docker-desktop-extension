@@ -1,5 +1,3 @@
-export type DepType = 'runtime' | 'build' | 'recommends' | 'test';
-
 export type OsFamily = 'deb' | 'rpm';
 
 export interface OsTarget {

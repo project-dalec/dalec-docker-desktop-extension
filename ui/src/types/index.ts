@@ -7,14 +7,6 @@ export interface Target {
   group: string;
 }
 
-export type DepType = 'runtime' | 'build' | 'recommends' | 'test';
-
-export interface DepTypeMeta {
-  id: DepType;
-  label: string;
-  description: string;
-}
-
 export interface VersionConstraint {
   op: string;
   val: string;
@@ -24,8 +16,6 @@ export interface Package {
   name: string;
   versions: VersionConstraint[];
 }
-
-export type PackagesMap = Record<DepType, Package[]>;
 
 export interface KVItem {
   key: string;
@@ -40,7 +30,7 @@ export interface ImageSpec {
   revision: string;
   license: string;
   target: Target | null;
-  packages: PackagesMap;
+  packages: Package[];
   entrypoint: string;
   cmd: string;
   workdir: string;
